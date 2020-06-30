@@ -369,7 +369,7 @@ bool Process::SetProcessBackgrounded(bool value) {
   // Not implemented for POSIX systems other than Linux. With POSIX, if we were
   // to lower the process priority we wouldn't be able to raise it back to its
   // initial priority.
-  NOTIMPLEMENTED();
+  // NOTIMPLEMENTED();
   return false;
 }
 #endif  // !defined(OS_LINUX)

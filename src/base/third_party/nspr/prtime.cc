@@ -140,7 +140,7 @@ PR_ImplodeTime(const PRExplodedTime *exploded)
     // Add microseconds that cannot be represented in |st|.
     result += exploded->tm_usec % 1000;
     return result;
-#elif defined(OS_MACOSX)
+#elif 0 && defined(OS_MACOSX)
     // Create the system struct representing our exploded time.
     CFGregorianDate gregorian_date;
     gregorian_date.year = exploded->tm_year;

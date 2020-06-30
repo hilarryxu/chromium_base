@@ -43,7 +43,7 @@
 
 #if defined(OS_MACOSX)
 #include <AvailabilityMacros.h>
-#include "base/mac/foundation_util.h"
+// #include "base/mac/foundation_util.h"
 #endif
 
 #if defined(OS_ANDROID)
@@ -132,7 +132,9 @@ bool VerifySpecificPathControlledByUser(const FilePath& path,
 
 std::string TempFileName() {
 #if defined(OS_MACOSX)
-  return StringPrintf(".%s.XXXXXX", base::mac::BaseBundleID());
+  // TODO: ?
+  // return StringPrintf(".%s.XXXXXX", base::mac::BaseBundleID());
+  return "";
 #endif
 
 #if defined(GOOGLE_CHROME_BUILD)

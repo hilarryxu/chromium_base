@@ -80,3 +80,7 @@ workspace "sln-chromium_base"
 
     filter "system:windows"
       links { "chromium_base", "winmm", "shlwapi", "Ole32", "Dbghelp" }
+
+    filter "system:macosx"
+      buildoptions { "-std=c++14", "-fno-rtti" }
+      links { "chromium_base", "pthread" }

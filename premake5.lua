@@ -21,6 +21,7 @@ workspace "sln-chromium_base"
       "src/base/**_win.cc",
       "src/base/win/**.cc",
       "src/base/**_posix.cc",
+      "src/base/posix/**.cc",
       "src/base/**_linux.cc",
     }
 
@@ -46,6 +47,7 @@ workspace "sln-chromium_base"
     filter "system:linux"
       files {
         "src/base/**_posix.cc",
+        "src/base/posix/**.cc",
         "src/base/**_linux.cc"
       }
       defines { "UNICODE" }
@@ -54,6 +56,7 @@ workspace "sln-chromium_base"
     filter "system:macosx"
       files {
         "src/base/**_posix.cc",
+        "src/base/posix/**.cc"
       }
       removefiles {
           "src/base/message_loop/**",

@@ -83,6 +83,7 @@
 #endif
 #include <errno.h>  /* for EINVAL */
 #include <time.h>
+#include <string.h>
 
 /* Implements the Unix localtime_r() function for windows */
 #if defined(OS_WIN) && !defined(CRT_MINGW)

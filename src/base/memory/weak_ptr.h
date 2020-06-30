@@ -160,7 +160,7 @@ class SupportsWeakPtrBase {
   template<typename Derived>
   static WeakPtr<Derived> StaticAsWeakPtr(Derived* t) {
     typedef
-        is_convertible<Derived, internal::SupportsWeakPtrBase&> convertible;
+        std::is_convertible<Derived, internal::SupportsWeakPtrBase&> convertible;
     static_assert(convertible::value,
                   "AsWeakPtr argument must inherit from SupportsWeakPtr");
     return AsWeakPtrImpl<Derived>(t, *t);

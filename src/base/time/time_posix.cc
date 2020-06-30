@@ -24,14 +24,14 @@
 #include "base/os_compat_nacl.h"
 #endif
 
-#if !defined(OS_MACOSX)
+#if 1 || !defined(OS_MACOSX)
 #include "base/lazy_instance.h"
 #include "base/synchronization/lock.h"
 #endif
 
 namespace {
 
-#if !defined(OS_MACOSX)
+#if 1 || !defined(OS_MACOSX)
 // This prevents a crash on traversing the environment global and looking up
 // the 'TZ' variable in libc. See: crbug.com/390567.
 base::LazyInstance<base::Lock>::Leaky
@@ -92,7 +92,7 @@ int64_t ConvertTimespecToMicros(const struct timespec& ts) {
 // _POSIX_MONOTONIC_CLOCK to -1.
 #if (defined(OS_POSIX) &&                                               \
      defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0) || \
-    defined(OS_BSD) || defined(OS_ANDROID)
+    defined(OS_BSD) || defined(OS_ANDROID) || defined(OS_MACOSX)
 int64_t ClockNow(clockid_t clk_id) {
   struct timespec ts;
   if (clock_gettime(clk_id, &ts) != 0) {
@@ -123,7 +123,7 @@ struct timespec TimeDelta::ToTimeSpec() const {
   return result;
 }
 
-#if !defined(OS_MACOSX)
+#if 1 || !defined(OS_MACOSX)
 // The Time routines in this file use standard POSIX routines, or almost-
 // standard routines in the case of timegm.  We need to use a Mach-specific
 // function for TimeTicks::Now() on Mac OS X.

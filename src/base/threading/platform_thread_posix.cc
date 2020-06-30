@@ -260,4 +260,23 @@ ThreadPriority PlatformThread::GetCurrentThreadPriority() {
 
 #endif  // !defined(OS_MACOSX)
 
+#if defined(OS_MACOSX)
+void InitThreading() {
+}
+
+void InitOnThread() {
+}
+
+void TerminateOnThread() {
+}
+
+size_t GetDefaultThreadStackSize(const pthread_attr_t& attributes) {
+  return 0;
+}
+
+// static
+void PlatformThread::SetCurrentThreadPriority(ThreadPriority priority) {
+}
+#endif  // defined(OS_MACOSX)
+
 }  // namespace base

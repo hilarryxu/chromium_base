@@ -458,7 +458,7 @@ bool SetPosixFilePermissions(const FilePath& path,
   return true;
 }
 
-#if !defined(OS_MACOSX)
+#if 1 || !defined(OS_MACOSX)
 // This is implemented in file_util_mac.mm for Mac.
 bool GetTempDir(FilePath* path) {
   const char* tmp = getenv("TMPDIR");
@@ -475,7 +475,7 @@ bool GetTempDir(FilePath* path) {
 }
 #endif  // !defined(OS_MACOSX)
 
-#if !defined(OS_MACOSX)  // Mac implementation is in file_util_mac.mm.
+#if 1 || !defined(OS_MACOSX)  // Mac implementation is in file_util_mac.mm.
 FilePath GetHomeDir() {
 #if defined(OS_CHROMEOS)
   if (SysInfo::IsRunningOnChromeOS()) {
@@ -853,7 +853,7 @@ bool GetShmemTempDir(bool executable, FilePath* path) {
 }
 #endif  // !defined(OS_ANDROID)
 
-#if !defined(OS_MACOSX)
+#if 1 || !defined(OS_MACOSX)
 // Mac has its own implementation, this is for all other Posix systems.
 bool CopyFile(const FilePath& from_path, const FilePath& to_path) {
   ThreadRestrictions::AssertIOAllowed();

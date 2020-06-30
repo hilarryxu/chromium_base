@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "build/targetver.h"
 #include <windows.h>
 #include <shlobj.h>
 
@@ -138,12 +139,13 @@ bool PathProviderWin(int key, FilePath* result) {
       if (win::GetVersion() < win::VERSION_WIN8)
         return false;
 
-      base::win::ScopedCoMem<wchar_t> path_buf;
-      if (FAILED(SHGetKnownFolderPath(FOLDERID_ApplicationShortcuts, 0, NULL,
-                                      &path_buf)))
-        return false;
+      // TODO: ?
+      // base::win::ScopedCoMem<wchar_t> path_buf;
+      // if (FAILED(SHGetKnownFolderPath(FOLDERID_ApplicationShortcuts, 0, NULL,
+      //                                 &path_buf)))
+      //   return false;
 
-      cur = FilePath(string16(path_buf));
+      // cur = FilePath(string16(path_buf));
       break;
     }
     case base::DIR_USER_DESKTOP:

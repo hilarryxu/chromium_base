@@ -47,10 +47,10 @@ public:
 
 	template<class... Args>
 	auto operator ()(Args && ... args) const
-#if _MSC_VER > 1900
-#else
-		->decltype(t_(std::forward<Args>(args)...))
-#endif
+// #if _MSC_VER > 1900
+// #else
+// 		->decltype(t_(std::forward<Args>(args)...))
+// #endif
 	{
 		if (!weak_flag_.expired()) {
 			return t_(std::forward<Args>(args)...);

@@ -62,9 +62,8 @@ void MessageLoopProxy::OnDestruct() const
 		if (target_message_loop_ &&
 			(MessageLoop::current() != target_message_loop_))
 		{
-    		// FIXME(xcc): base::Bind
 			target_message_loop_->PostNonNestableTask(
-				std::bind(&MessageLoopProxy::DeleteSelf, this));
+				base::Bind(&MessageLoopProxy::DeleteSelf, this));
 			delete_later = true;
 		}
 	}

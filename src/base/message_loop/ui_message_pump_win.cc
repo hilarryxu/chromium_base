@@ -384,5 +384,5 @@ void WinUIMessagePump::PostProcessMessage(const MSG& msg)
     FOR_EACH_OBSERVER(UIObserver, observers_, PostProcessMessage(msg));
 }
 
-} // namespace nbase
+} // namespace base
 

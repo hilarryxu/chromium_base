@@ -20,4 +20,4 @@ MessagePump::~MessagePump()
 
 }
 
-} // namespace nbase
+} // namespace base

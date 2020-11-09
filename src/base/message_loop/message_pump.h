@@ -57,6 +57,6 @@ public:
 	virtual void ScheduleDelayedWork(const TimeTicks& delay_message_time) = 0;
 };
 
-} // namespace nbase
+} // namespace base
 
 #endif // BASE_FRAMEWORK_MESSAGE_PUMP_H_

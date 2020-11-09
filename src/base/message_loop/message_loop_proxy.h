@@ -155,9 +155,8 @@ template<>
 void MessageLoopProxy::PostTaskAndReplyRelay<void(), void()>::Run()
 {
 	std_task_();
-	// FIXME(xcc): base::Bind
 	origin_loop_->PostTask(
-		std::bind(&PostTaskAndReplyRelay::RunReplyAndSelfDestruct, this));
+		base::Bind(&PostTaskAndReplyRelay::RunReplyAndSelfDestruct, this));
 }
 
 }  // namespace base

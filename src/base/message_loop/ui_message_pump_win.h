@@ -56,6 +56,6 @@ private:
 	ObserverList<UIObserver> observers_;
 };
 
-} // namespace nbase
+} // namespace base
 
 #endif // BASE_FRAMEWORK_WIN_UI_MESSAGE_PUMP_H_

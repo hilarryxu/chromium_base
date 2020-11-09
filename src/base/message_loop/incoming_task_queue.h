@@ -8,7 +8,7 @@
 #include "base/base_export.h"
 #include "base/macros.h"
 #include "base/memory/ref_counted.h"
-#include "base/pending_task.h"
+#include "base/task/pending_task.h"
 #include "base/synchronization/lock.h"
 #include "base/time/time.h"
 

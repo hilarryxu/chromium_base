@@ -8,8 +8,8 @@
 #include "base/base_export.h"
 #include "base/macros.h"
 #include "base/memory/ref_counted.h"
-#include "base/pending_task.h"
-#include "base/single_thread_task_runner.h"
+#include "base/task/pending_task.h"
+#include "base/task/single_thread_task_runner.h"
 #include "base/synchronization/lock.h"
 #include "base/threading/platform_thread.h"
 

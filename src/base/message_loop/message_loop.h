@@ -10,8 +10,6 @@
 
 #include "base/base_export.h"
 #include "base/callback_forward.h"
-#include "base/debug/task_annotator.h"
-#include "base/gtest_prod_util.h"
 #include "base/location.h"
 #include "base/macros.h"
 #include "base/memory/ref_counted.h"
@@ -21,11 +19,10 @@
 #include "base/message_loop/message_pump.h"
 #include "base/message_loop/timer_slack.h"
 #include "base/observer_list.h"
-#include "base/pending_task.h"
-#include "base/sequenced_task_runner_helpers.h"
+#include "base/task/pending_task.h"
+#include "base/task/sequenced_task_runner_helpers.h"
 #include "base/synchronization/lock.h"
 #include "base/time/time.h"
-#include "base/tracking_info.h"
 #include "build/build_config.h"
 
 // TODO(sky): these includes should not be necessary. Nuke them.

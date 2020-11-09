@@ -10,11 +10,9 @@
 #include <limits>
 
 #include "base/message_loop/message_loop.h"
-#include "base/metrics/histogram.h"
-#include "base/process/memory.h"
+// #include "base/process/memory.h"
 #include "base/strings/stringprintf.h"
-#include "base/trace_event/trace_event.h"
-#include "base/win/wrapped_window_proc.h"
+// #include "base/win/wrapped_window_proc.h"
 
 namespace base {
 

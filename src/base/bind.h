@@ -9,13 +9,6 @@
 
 namespace base {
 
-// global function
-template<class F, class... Args, class = typename std::enable_if<!std::is_member_function_pointer<F>::value>::type>
-auto Bind(F && f, Args && ... args) -> decltype(std::bind(f, args...))
-{
-  return std::bind(f, args...);
-}
-
 }  // namespace base
 
 #endif  // BASE_BIND_H_

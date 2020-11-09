@@ -23,8 +23,6 @@ workspace "sln-chromium_base"
       "src/base/**_posix.cc",
       "src/base/posix/**.cc",
       "src/base/**_linux.cc",
-      "src/base/message_loop/*.cc",
-      "src/base/task/*.cc",
       "src/base/threading/thread.cc",
     }
 
@@ -43,8 +41,6 @@ workspace "sln-chromium_base"
       files {
         "src/base/**_win.cc",
         "src/base/win/**.cc",
-        "src/base/message_loop/message_pump.cc",
-        "src/base/message_loop/message_pump_default.cc",
       }
       defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API" }
       buildoptions { "-std=c++14", "-fno-rtti" }

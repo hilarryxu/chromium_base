@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <winsock2.h>
 #include "base/files/file_util.h"
 
-#include <winsock2.h>
 #include <windows.h>
 #include <io.h>
 #include <psapi.h>

@@ -22,8 +22,7 @@ workspace "sln-chromium_base"
       "src/base/win/**.cc",
       "src/base/**_posix.cc",
       "src/base/posix/**.cc",
-      "src/base/**_linux.cc",
-      "src/base/threading/thread.cc",
+      "src/base/**_linux.cc"
     }
 
     includedirs { "src" }
@@ -40,9 +39,9 @@ workspace "sln-chromium_base"
     filter { "system:windows", "toolset:gcc" }
       files {
         "src/base/**_win.cc",
-        "src/base/win/**.cc",
+        "src/base/win/**.cc"
       }
-      defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API" }
+      defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
       buildoptions { "-std=c++14", "-fno-rtti" }
 
     filter "system:linux"
@@ -60,8 +59,7 @@ workspace "sln-chromium_base"
         "src/base/posix/**.cc"
       }
       removefiles {
-          "src/base/message_loop/**",
-          "src/base/threading/thread.cc"
+          "src/base/message_loop/**"
       }
       defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti", "-Wno-user-defined-warnings" }

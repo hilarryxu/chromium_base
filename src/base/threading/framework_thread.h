@@ -128,6 +128,7 @@ public:
 
 	// Returns true if the thread has been started, and not yet stopped.
 	// When a thread is running, |thread_id_| is a valid id.
+	// FIXME(xcc): to impl
 	bool IsRunning() const { return false; }
 
 	// Returns true if the thread's stopping flag is set

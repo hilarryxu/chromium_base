@@ -8,7 +8,6 @@
 // Thread with framework(message loop)
 
 #include "base/threading/framework_thread.h"
-#include "base/macros.h"
 #include "base/lazy_instance.h"
 
 namespace base

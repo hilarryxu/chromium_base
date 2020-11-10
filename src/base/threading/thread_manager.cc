@@ -8,7 +8,6 @@
 #include "base/threading/thread_manager.h"
 #include "base/message_loop/message_loop.h"
 #include "base/memory/singleton.h"
-// #include "base/third_party/chrome/atomicops.h"
 
 #define AUTO_MAP_LOCK() AutoLock __l(GetInstance()->lock_);
 #define AQUIRE_ACCESS() {if (!AquireAccess()) { /*DCHECK(false);*/ return false; }}

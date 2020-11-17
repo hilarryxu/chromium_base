@@ -5,9 +5,10 @@
 #ifndef BASE_MEMORY_RAW_SCOPED_REFPTR_MISMATCH_CHECKER_H_
 #define BASE_MEMORY_RAW_SCOPED_REFPTR_MISMATCH_CHECKER_H_
 
-#include <type_traits>
-
+#include "base/memory/ref_counted.h"
 #include "base/template_util.h"
+#include "base/tuple.h"
+#include "build/build_config.h"
 
 // It is dangerous to post a task with a T* argument where T is a subtype of
 // RefCounted(Base|ThreadSafeBase), since by the time the parameter is used, the
@@ -22,23 +23,38 @@ namespace base {
 // Not for public consumption, so we wrap it in namespace internal.
 namespace internal {
 
-template <typename T, typename = void>
-struct IsRefCountedType : std::false_type {};
-
 template <typename T>
-struct IsRefCountedType<T,
-                        void_t<decltype(std::declval<T*>()->AddRef()),
-                               decltype(std::declval<T*>()->Release())>>
-    : std::true_type {};
+struct NeedsScopedRefptrButGetsRawPtr {
+#if defined(OS_WIN)
+  enum {
+    value = base::false_type::value
+  };
+#else
+  enum {
+    // Human readable translation: you needed to be a scoped_refptr if you are a
+    // raw pointer type and are convertible to a RefCounted(Base|ThreadSafeBase)
+    // type.
+    value = (is_pointer<T>::value &&
+             (is_convertible<T, subtle::RefCountedBase*>::value ||
+              is_convertible<T, subtle::RefCountedThreadSafeBase*>::value))
+  };
+#endif
+};
 
-// Human readable translation: you needed to be a scoped_refptr if you are a raw
-// pointer type and are convertible to a RefCounted(Base|ThreadSafeBase) type.
-template <typename T>
-struct NeedsScopedRefptrButGetsRawPtr
-    : conjunction<std::is_pointer<T>,
-                  IsRefCountedType<std::remove_pointer_t<T>>> {
-  static_assert(!std::is_reference<T>::value,
-                "NeedsScopedRefptrButGetsRawPtr requires non-reference type.");
+template <typename Params>
+struct ParamsUseScopedRefptrCorrectly {
+  enum { value = 0 };
+};
+
+template <>
+struct ParamsUseScopedRefptrCorrectly<Tuple<>> {
+  enum { value = 1 };
+};
+
+template <typename Head, typename... Tail>
+struct ParamsUseScopedRefptrCorrectly<Tuple<Head, Tail...>> {
+  enum { value = !NeedsScopedRefptrButGetsRawPtr<Head>::value &&
+                 ParamsUseScopedRefptrCorrectly<Tuple<Tail...>>::value };
 };
 
 }  // namespace internal

@@ -25,9 +25,9 @@ FrameworkThread::FrameworkThread(const char* name)
 	  loop_type_(MessageLoop::kDefaultMessageLoop),
 	  message_loop_(NULL),
 	  event_(false, false),
+	  name_(name),
 	  thread_(0),
-	  id_(kInvalidThreadId),
-	  name_(name)
+	  id_(kInvalidThreadId)
 {
 
 }
@@ -141,6 +141,9 @@ void FrameworkThread::Stop()
 	PlatformThread::Join(thread_);
 	thread_ = base::PlatformThreadHandle();
 
+	// The thread should nullify message_loop_ on exit.
+	// DCHECK(!message_loop_);
+
 	started_ = false;
 	stopping_ = false;
 }
@@ -159,6 +162,11 @@ void FrameworkThread::DoStopSoon()
 {
 	MessageLoop::current()->Quit();
 	SetThreadWasQuitProperly(true);
+}
+
+bool FrameworkThread::IsRunning() const {
+	AutoLock lock(thread_lock_);
+	return !thread_.is_null();
 }
 
 void FrameworkThread::ThreadMain()

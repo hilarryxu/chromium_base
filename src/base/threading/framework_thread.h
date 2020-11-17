@@ -127,9 +127,8 @@ public:
 	const std::string &thread_name() { return name_; }
 
 	// Returns true if the thread has been started, and not yet stopped.
-	// When a thread is running, |thread_id_| is a valid id.
-	// FIXME(xcc): to impl
-	bool IsRunning() const { return false; }
+	// When a thread is running, |thread_| is valid.
+	bool IsRunning() const;
 
 	// Returns true if the thread's stopping flag is set
 	bool IsStopping() const { return stopping_; } 
@@ -153,7 +152,7 @@ protected:
 
 	// PlatformThread::Delegate methods:
 	// Called to start the message loop
-	virtual void ThreadMain() override;
+	virtual void ThreadMain();
 
 	// Called just after the message loop ends
 	virtual void Cleanup() {}

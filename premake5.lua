@@ -50,6 +50,12 @@ workspace "sln-chromium_base"
         "src/base/posix/**.cc",
         "src/base/**_linux.cc"
       }
+      removefiles {
+        "src/base/message_loop/**",
+        "src/base/threading/thread.cc",
+        "src/base/run_loop.cc",
+        "src/base/synchronization/waitable_event_watcher_posix.cc"
+      }
       defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti" }
 
@@ -59,8 +65,8 @@ workspace "sln-chromium_base"
         "src/base/posix/**.cc"
       }
       removefiles {
-          "src/base/message_loop/**",
-          "src/base/threading/thread.cc"
+        "src/base/message_loop/**",
+        "src/base/threading/thread.cc"
       }
       defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti", "-Wno-user-defined-warnings" }

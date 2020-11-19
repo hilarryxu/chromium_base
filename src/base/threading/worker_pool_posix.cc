@@ -16,10 +16,7 @@
 #include "base/threading/platform_thread.h"
 #include "base/threading/thread_local.h"
 #include "base/threading/worker_pool.h"
-#include "base/trace_event/trace_event.h"
-#include "base/tracked_objects.h"
-
-using tracked_objects::TrackedTime;
+#include "base/location.h"
 
 namespace base {
 
@@ -86,17 +83,17 @@ void WorkerThread::ThreadMain() {
     PendingTask pending_task = pool_->WaitForTask();
     if (pending_task.task.is_null())
       break;
-    TRACE_EVENT2("toplevel", "WorkerThread::ThreadMain::Run",
-        "src_file", pending_task.posted_from.file_name(),
-        "src_func", pending_task.posted_from.function_name());
+    // TRACE_EVENT2("toplevel", "WorkerThread::ThreadMain::Run",
+    //     "src_file", pending_task.posted_from.file_name(),
+    //     "src_func", pending_task.posted_from.function_name());
 
-    tracked_objects::TaskStopwatch stopwatch;
-    stopwatch.Start();
+    // tracked_objects::TaskStopwatch stopwatch;
+    // stopwatch.Start();
     pending_task.task.Run();
-    stopwatch.Stop();
+    // stopwatch.Stop();
 
-    tracked_objects::ThreadData::TallyRunOnWorkerThreadIfTracking(
-        pending_task.birth_tally, pending_task.time_posted, stopwatch);
+    // tracked_objects::ThreadData::TallyRunOnWorkerThreadIfTracking(
+    //     pending_task.birth_tally, pending_task.time_posted, stopwatch);
   }
 
   // The WorkerThread is non-joinable, so it deletes itself.

@@ -15,14 +15,16 @@ workspace "sln-chromium_base"
     kind "StaticLib"
     language "C++"
     targetdir "builddir"
-    files { "src/base/**.cc" }
+    files { "src/base/**.cc", "src/net/**.cc" }
     removefiles { "src/base/third_party/dmg_fp/dtoa.cc" }
     removefiles {
       "src/base/**_win.cc",
       "src/base/win/**.cc",
       "src/base/**_posix.cc",
       "src/base/posix/**.cc",
-      "src/base/**_linux.cc"
+      "src/base/**_linux.cc",
+      "src/net/**_win.cc",
+      "src/net/**_posix.cc"
     }
 
     includedirs { "src" }
@@ -48,7 +50,8 @@ workspace "sln-chromium_base"
       files {
         "src/base/**_posix.cc",
         "src/base/posix/**.cc",
-        "src/base/**_linux.cc"
+        "src/base/**_linux.cc",
+        "src/net/**_posix.cc"
       }
       removefiles {
         "src/base/message_loop/**",

@@ -24,6 +24,8 @@
 #define DCHECK_IS_ON() true
 #endif
 
+#define LOG_IS_ON(severity) true
+
 #define LOG_DEBUG LogMessage(__FILE__, __LINE__)
 #define LOG_INFO LogMessage(__FILE__, __LINE__)
 #define LOG_WARNING LogMessage(__FILE__, __LINE__)
@@ -35,6 +37,10 @@
   !(condition) ? (void)0 : LogMessageVoidify() & (stream)
 
 #define LOG_STREAM(severity) LOG_##severity.stream()
+
+#define LOG(severity) LAZY_STREAM(LOG_STREAM(severity), LOG_IS_ON(severity))
+#define LOG_IF(severity, condition) \
+  LAZY_STREAM(LOG_STREAM(severity), (condition))
 
 // Debug-only checking.
 #define DCHECK(condition)                                        \
@@ -74,16 +80,15 @@
 #define LOG_DFATAL LOG_FATAL
 #endif
 
-#define LOG(severity) LOG_##severity.stream()
-#define DLOG LOG
-#define DPLOG LOG
+#define DLOG(severity) \
+  LAZY_STREAM(LOG_STREAM(severity), ENABLE_DLOG)
+#define DLOG_IF(severity, condition) \
+  LAZY_STREAM(LOG_STREAM(severity), ENABLE_DLOG && (condition))
+#define DPLOG DLOG
+#define DPLOG_IF DLOG_IF
 
-#define VLOG(x)  \
-  if ((x) > 0) { \
-  } else         \
-    LOG_INFO.stream()
-
-#define DVLOG VLOG
+#define DVLOG(x) \
+  LAZY_STREAM(LOG_STREAM(INFO), ENABLE_DLOG)
 
 // This class is used to explicitly ignore values in the conditional
 // logging macros.  This avoids compiler warnings like "value computed

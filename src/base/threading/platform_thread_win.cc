@@ -256,8 +256,10 @@ void PlatformThread::SetCurrentThreadPriority(ThreadPriority priority) {
 #endif
       ::SetThreadPriority(PlatformThread::CurrentHandle().platform_handle(),
                           desired_priority);
-  // DPLOG_IF(ERROR, !success) << "Failed to set thread priority to "
-  //                           << desired_priority;
+#ifndef NDEBUG
+  DPLOG_IF(ERROR, !success) << "Failed to set thread priority to "
+                            << desired_priority;
+#endif
 }
 
 // static

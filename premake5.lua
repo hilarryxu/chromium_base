@@ -41,7 +41,8 @@ workspace "sln-chromium_base"
     filter { "system:windows", "toolset:gcc" }
       files {
         "src/base/**_win.cc",
-        "src/base/win/**.cc"
+        "src/base/win/**.cc",
+        "src/net/**_win.cc"
       }
       defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
       buildoptions { "-std=c++14", "-fno-rtti" }

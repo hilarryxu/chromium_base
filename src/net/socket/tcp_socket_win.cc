@@ -14,7 +14,7 @@
 #include "base/files/file_util.h"
 #include "base/logging.h"
 #include "base/macros.h"
-// #include "net/base/address_list.h"
+#include "net/base/address_list.h"
 #include "net/base/io_buffer.h"
 #include "net/base/ip_endpoint.h"
 #include "net/base/net_errors.h"
@@ -390,8 +390,8 @@ int TCPSocketWin::Connect(const IPEndPoint& address,
   // the same way as TCPSocketPosix.
   DCHECK(!peer_address_ && !core_.get());
 
-  // if (!logging_multiple_connect_attempts_)
-  //   LogConnectBegin(AddressList(address));
+  if (!logging_multiple_connect_attempts_)
+    LogConnectBegin(AddressList(address));
 
   peer_address_.reset(new IPEndPoint(address));
 

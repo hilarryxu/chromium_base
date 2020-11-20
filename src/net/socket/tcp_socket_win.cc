@@ -245,8 +245,7 @@ TCPSocketWin::TCPSocketWin()
       waiting_connect_(false),
       waiting_read_(false),
       waiting_write_(false),
-      connect_os_error_(0),
-      logging_multiple_connect_attempts_(false) {
+      connect_os_error_(0) {
   EnsureWinsockInit();
 }
 
@@ -389,9 +388,6 @@ int TCPSocketWin::Connect(const IPEndPoint& address,
   // unspecified behavior according to POSIX. Therefore, we make it behave in
   // the same way as TCPSocketPosix.
   DCHECK(!peer_address_ && !core_.get());
-
-  if (!logging_multiple_connect_attempts_)
-    LogConnectBegin(AddressList(address));
 
   peer_address_.reset(new IPEndPoint(address));
 
@@ -643,25 +639,6 @@ void TCPSocketWin::DetachFromThread() {
   base::NonThreadSafe::DetachFromThread();
 }
 
-void TCPSocketWin::StartLoggingMultipleConnectAttempts(
-    const AddressList& addresses) {
-  if (!logging_multiple_connect_attempts_) {
-    logging_multiple_connect_attempts_ = true;
-    LogConnectBegin(addresses);
-  } else {
-    NOTREACHED();
-  }
-}
-
-void TCPSocketWin::EndLoggingMultipleConnectAttempts(int net_error) {
-  if (logging_multiple_connect_attempts_) {
-    LogConnectEnd(net_error);
-    logging_multiple_connect_attempts_ = false;
-  } else {
-    NOTREACHED();
-  }
-}
-
 int TCPSocketWin::AcceptInternal(std::unique_ptr<TCPSocketWin>* socket,
                                  IPEndPoint* address) {
   SockaddrStorage storage;
@@ -768,29 +745,6 @@ void TCPSocketWin::DoConnectComplete(int result) {
   // Log the end of this attempt (and any OS error it threw).
   int os_error = connect_os_error_;
   connect_os_error_ = 0;
-
-  if (!logging_multiple_connect_attempts_)
-    LogConnectEnd(result);
-}
-
-void TCPSocketWin::LogConnectBegin(const AddressList& addresses) {
-}
-
-void TCPSocketWin::LogConnectEnd(int net_error) {
-  if (net_error != OK) {
-    return;
-  }
-
-  struct sockaddr_storage source_address;
-  socklen_t addrlen = sizeof(source_address);
-  int rv = getsockname(
-      socket_, reinterpret_cast<struct sockaddr*>(&source_address), &addrlen);
-  if (rv != 0) {
-    LOG(ERROR) << "getsockname() [rv: " << rv
-               << "] error: " << WSAGetLastError();
-    NOTREACHED();
-    return;
-  }
 }
 
 int TCPSocketWin::DoRead(IOBuffer* buf, int buf_len,
@@ -926,13 +880,6 @@ void TCPSocketWin::DidSignalRead() {
 
   DCHECK_NE(rv, ERR_IO_PENDING);
   base::ResetAndReturn(&read_callback_).Run(rv);
-}
-
-bool TCPSocketWin::GetEstimatedRoundTripTime(base::TimeDelta* out_rtt) const {
-  DCHECK(out_rtt);
-  // TODO(bmcquade): Consider implementing using
-  // GetPerTcpConnectionEStats/GetPerTcp6ConnectionEStats.
-  return false;
 }
 
 }  // namespace net

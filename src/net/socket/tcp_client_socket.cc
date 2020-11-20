@@ -69,8 +69,6 @@ int TCPClientSocket::Connect(const CompletionCallback& callback) {
   if (socket_->IsValid() && current_address_index_ >= 0)
     return OK;
 
-  socket_->StartLoggingMultipleConnectAttempts(addresses_);
-
   // We will try to connect to each address in addresses_. Start with the
   // first one in the list.
   next_connect_state_ = CONNECT_STATE_CONNECT;
@@ -79,8 +77,6 @@ int TCPClientSocket::Connect(const CompletionCallback& callback) {
   int rv = DoConnectLoop(OK);
   if (rv == ERR_IO_PENDING) {
     connect_callback_ = callback;
-  } else {
-    socket_->EndLoggingMultipleConnectAttempts(rv);
   }
 
   return rv;
@@ -179,7 +175,6 @@ void TCPClientSocket::Disconnect() {
 
 void TCPClientSocket::DoDisconnect() {
   total_received_bytes_ = 0;
-  EmitTCPMetricsHistogramsOnDisconnect();
   // If connecting or already connected, record that the socket has been
   // disconnected.
   previously_disconnected_ = socket_->IsValid() && current_address_index_ >= 0;
@@ -212,22 +207,12 @@ int TCPClientSocket::GetLocalAddress(IPEndPoint* address) const {
   return socket_->GetLocalAddress(address);
 }
 
-void TCPClientSocket::SetSubresourceSpeculation() {
-}
-
-void TCPClientSocket::SetOmniboxSpeculation() {
-}
-
 bool TCPClientSocket::WasEverUsed() const {
   return false;
 }
 
 void TCPClientSocket::EnableTCPFastOpenIfSupported() {
   socket_->EnableTCPFastOpenIfSupported();
-}
-
-bool TCPClientSocket::WasNpnNegotiated() const {
-  return false;
 }
 
 int TCPClientSocket::Read(IOBuffer* buf,
@@ -302,7 +287,6 @@ void TCPClientSocket::DidCompleteConnect(int result) {
 
   result = DoConnectLoop(result);
   if (result != ERR_IO_PENDING) {
-    socket_->EndLoggingMultipleConnectAttempts(result);
     base::ResetAndReturn(&connect_callback_).Run(result);
   }
 }
@@ -335,12 +319,6 @@ int TCPClientSocket::OpenSocket(AddressFamily family) {
   socket_->SetDefaultOptionsForClient();
 
   return OK;
-}
-
-void TCPClientSocket::EmitTCPMetricsHistogramsOnDisconnect() {
-  base::TimeDelta rtt;
-  if (socket_->GetEstimatedRoundTripTime(&rtt)) {
-  }
 }
 
 }  // namespace net

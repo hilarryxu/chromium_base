@@ -62,12 +62,6 @@ class NET_EXPORT_PRIVATE StreamSocket : public Socket {
   // ERR_SOCKET_NOT_CONNECTED will be returned if the socket is not bound.
   virtual int GetLocalAddress(IPEndPoint* address) const = 0;
 
-  // Set the annotation to indicate this socket was created for speculative
-  // reasons.  This call is generally forwarded to a basic TCPClientSocket*,
-  // where a UseHistory can be updated.
-  virtual void SetSubresourceSpeculation() = 0;
-  virtual void SetOmniboxSpeculation() = 0;
-
   // Returns true if the socket ever had any reads or writes.  StreamSockets
   // layered on top of transport sockets should return if their own Read() or
   // Write() methods had been called, not the underlying transport's.
@@ -76,9 +70,6 @@ class NET_EXPORT_PRIVATE StreamSocket : public Socket {
   // TODO(jri): Clean up -- rename to a more general EnableAutoConnectOnWrite.
   // Enables use of TCP FastOpen for the underlying transport socket.
   virtual void EnableTCPFastOpenIfSupported() {}
-
-  // Returns true if NPN was negotiated during the connection of this socket.
-  virtual bool WasNpnNegotiated() const = 0;
 
   // Overwrites |out| with the connection attempts made in the process of
   // connecting this socket.

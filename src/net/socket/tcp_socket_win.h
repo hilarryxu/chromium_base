@@ -73,11 +73,6 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   bool SetKeepAlive(bool enable, int delay);
   bool SetNoDelay(bool no_delay);
 
-  // Gets the estimated RTT. Returns false if the RTT is
-  // unavailable. May also return false when estimated RTT is 0.
-  bool GetEstimatedRoundTripTime(base::TimeDelta* out_rtt) const
-      WARN_UNUSED_RESULT;
-
   void Close();
 
   // NOOP since TCP FastOpen is not implemented in Windows.
@@ -89,19 +84,6 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // a new thread. Should only be called when the object is no longer used by
   // the old thread.
   void DetachFromThread();
-
-  // Marks the start/end of a series of connect attempts for logging purpose.
-  //
-  // TCPClientSocket may attempt to connect to multiple addresses until it
-  // succeeds in establishing a connection. The corresponding log will have
-  // multiple NetLog::TYPE_TCP_CONNECT_ATTEMPT entries nested within a
-  // NetLog::TYPE_TCP_CONNECT. These methods set the start/end of
-  // NetLog::TYPE_TCP_CONNECT.
-  //
-  // TODO(yzshen): Change logging format and let TCPClientSocket log the
-  // start/end of a series of connect attempts itself.
-  void StartLoggingMultipleConnectAttempts(const AddressList& addresses);
-  void EndLoggingMultipleConnectAttempts(int net_error);
 
  private:
   class Core;
@@ -115,7 +97,6 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   int DoConnect();
   void DoConnectComplete(int result);
 
-  void LogConnectBegin(const AddressList& addresses);
   void LogConnectEnd(int net_error);
 
   int DoRead(IOBuffer* buf, int buf_len, const CompletionCallback& callback);
@@ -151,8 +132,6 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   std::unique_ptr<IPEndPoint> peer_address_;
   // The OS error that a connect attempt last completed with.
   int connect_os_error_;
-
-  bool logging_multiple_connect_attempts_;
 
   DISALLOW_COPY_AND_ASSIGN(TCPSocketWin);
 };

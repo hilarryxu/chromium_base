@@ -45,11 +45,8 @@ class NET_EXPORT TCPClientSocket : public StreamSocket {
   bool IsConnectedAndIdle() const override;
   int GetPeerAddress(IPEndPoint* address) const override;
   int GetLocalAddress(IPEndPoint* address) const override;
-  void SetSubresourceSpeculation() override;
-  void SetOmniboxSpeculation() override;
   bool WasEverUsed() const override;
   void EnableTCPFastOpenIfSupported() override;
-  bool WasNpnNegotiated() const override;
 
   // Socket implementation.
   // Multiple outstanding requests are not supported.
@@ -94,10 +91,6 @@ class NET_EXPORT TCPClientSocket : public StreamSocket {
   void DidCompleteReadWrite(const CompletionCallback& callback, int result);
 
   int OpenSocket(AddressFamily family);
-
-  // Emits histograms for TCP metrics, at the time the socket is
-  // disconnected.
-  void EmitTCPMetricsHistogramsOnDisconnect();
 
   std::unique_ptr<TCPSocket> socket_;
 

@@ -15,7 +15,7 @@
 namespace net {
 
 TCPServerSocket::TCPServerSocket()
-    : socket_(), pending_accept_(false) {}
+    : pending_accept_(false) {}
 
 TCPServerSocket::~TCPServerSocket() {
 }

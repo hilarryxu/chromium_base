@@ -26,7 +26,7 @@ class NET_EXPORT TCPClientSocket : public StreamSocket {
   // The IP address(es) and port number to connect to.  The TCP socket will try
   // each IP address in the list until it succeeds in establishing a
   // connection.
-  TCPClientSocket(const AddressList& addresses);
+  explicit TCPClientSocket(const AddressList& addresses);
 
   // Adopts the given, connected socket and then acts as if Connect() had been
   // called. This function is used by TCPServerSocket and for testing.

@@ -11,6 +11,7 @@
 #include "base/strings/string_split.h"
 #include "base/strings/stringprintf.h"
 #include "net/base/parse_number.h"
+#include "net/base/sys_addrinfo.h"
 
 namespace {
 
@@ -180,12 +181,14 @@ bool IPAddress::IsIPv4MappedIPv6() const {
   return IsIPv6() && IPAddressStartsWith(*this, kIPv4MappedPrefix);
 }
 
+// FIXME(cxx): support IPv6
 bool IPAddress::AssignFromIPLiteral(const base::StringPiece& ip_literal) {
-  std::vector<uint8_t> number;
-
-  if (true)
+  unsigned long addr = inet_addr(ip_literal.data());
+  if (addr == INADDR_NONE)
     return false;
 
+  std::vector<uint8_t> number(reinterpret_cast<uint8_t*>(&addr),
+                              reinterpret_cast<uint8_t*>(&addr) + kIPv4AddressSize);
   std::swap(number, ip_address_);
   return true;
 }
@@ -235,7 +238,16 @@ bool IPAddress::operator<(const IPAddress& that) const {
   return ip_address_ < that.ip_address_;
 }
 
+// FIXME(cxx): support IPv6
 std::string IPAddress::ToString() const {
+  if (IsIPv4()) {
+    return base::StringPrintf("%d.%d.%d.%d",
+                              ip_address_[0],
+                              ip_address_[1],
+                              ip_address_[2],
+                              ip_address_[3]);
+  }
+
   return "";
 }
 

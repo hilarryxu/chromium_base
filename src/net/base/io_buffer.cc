@@ -20,19 +20,14 @@ void AssertValidBufferSize(size_t size) {
   // base::CheckedNumeric<int>(size).ValueOrDie();
 }
 
-void AssertValidBufferSize(int size) {
-  CHECK_GE(size, 0);
-}
+// void AssertValidBufferSize(int size) {
+//   CHECK_GE(size, 0);
+// }
 
 }  // namespace
 
 IOBuffer::IOBuffer()
     : data_(NULL) {
-}
-
-IOBuffer::IOBuffer(int buffer_size) {
-  AssertValidBufferSize(buffer_size);
-  data_ = new char[buffer_size];
 }
 
 IOBuffer::IOBuffer(size_t buffer_size) {
@@ -49,20 +44,8 @@ IOBuffer::~IOBuffer() {
   data_ = NULL;
 }
 
-IOBufferWithSize::IOBufferWithSize(int size)
-    : IOBuffer(size),
-      size_(size) {
-  AssertValidBufferSize(size);
-}
-
 IOBufferWithSize::IOBufferWithSize(size_t size) : IOBuffer(size), size_(size) {
   // Note: Size check is done in superclass' constructor.
-}
-
-IOBufferWithSize::IOBufferWithSize(char* data, int size)
-    : IOBuffer(data),
-      size_(size) {
-  AssertValidBufferSize(size);
 }
 
 IOBufferWithSize::IOBufferWithSize(char* data, size_t size)
@@ -91,14 +74,6 @@ StringIOBuffer::~StringIOBuffer() {
   // We haven't allocated the buffer, so remove it before the base class
   // destructor tries to delete[] it.
   data_ = NULL;
-}
-
-DrainableIOBuffer::DrainableIOBuffer(IOBuffer* base, int size)
-    : IOBuffer(base->data()),
-      base_(base),
-      size_(size),
-      used_(0) {
-  AssertValidBufferSize(size);
 }
 
 DrainableIOBuffer::DrainableIOBuffer(IOBuffer* base, size_t size)

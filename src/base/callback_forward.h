@@ -9,7 +9,7 @@
 
 namespace base {
 
-typedef std::function<void(void)> Closure;
+using Closure = std::function<void(void)>;
 
 }  // namespace base
 

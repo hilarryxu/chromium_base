@@ -105,10 +105,10 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
   // PostTask族函数均线程安全，一个线程可以使用这些方法给其他线程发送任务
   //
   // 注意：一个任务被Post到MessageLoop之后，其生命周期将由这个MessageLoop所在的线程控制
-  void PostTask(const StdClosure& task);
-  void PostDelayedTask(const StdClosure& task, TimeDelta delay);
-  void PostNonNestableTask(const StdClosure& task);
-  void PostNonNestableDelayedTask(const StdClosure& task, TimeDelta delay);
+  void PostTask(const Closure& task);
+  void PostDelayedTask(const Closure& task, TimeDelta delay);
+  void PostNonNestableTask(const Closure& task);
+  void PostNonNestableDelayedTask(const Closure& task, TimeDelta delay);
 
   // SetNestableTasksAllowed用于启用或者禁用嵌套任务处理
   // 如果启用嵌套任务，那么Task将被立即执行，否则将先被暂存在一个队列中直到上层任务执行完成再执行
@@ -196,8 +196,8 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
   };
 
   struct PendingTask {
-    PendingTask(const StdClosure& task);
-    PendingTask(const StdClosure& task,
+    PendingTask(const Closure& task);
+    PendingTask(const Closure& task,
                 base::TimeTicks delayed_run_time,
                 bool nestable);
 
@@ -222,7 +222,7 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
     }
 
    private:
-    StdClosure std_task;
+    Closure std_task;
   };
 
   class TaskQueue : public std::queue<PendingTask> {

@@ -49,30 +49,30 @@ class BASE_EXPORT ThreadManager {
   static T* CurrentThreadT();
   static int QueryThreadId(const FrameworkThread* thread);
 
-  static bool PostTask(const StdClosure& task);
-  static bool PostTask(int identifier, const StdClosure& task);
+  static bool PostTask(const Closure& task);
+  static bool PostTask(int identifier, const Closure& task);
 
-  static bool PostDelayedTask(const StdClosure& task, TimeDelta delay);
+  static bool PostDelayedTask(const Closure& task, TimeDelta delay);
   static bool PostDelayedTask(int identifier,
-                              const StdClosure& task,
+                              const Closure& task,
                               TimeDelta delay);
 
   static const int TIMES_FOREVER = -1;
-  static void PostRepeatedTask(const WeakCallback<StdClosure>& task,
+  static void PostRepeatedTask(const WeakCallback<Closure>& task,
                                const TimeDelta& delay,
                                int times = TIMES_FOREVER);
   static void PostRepeatedTask(int thread_id,
-                               const WeakCallback<StdClosure>& task,
+                               const WeakCallback<Closure>& task,
                                const TimeDelta& delay,
                                int times = TIMES_FOREVER);
 
-  static bool PostNonNestableTask(const StdClosure& task);
-  static bool PostNonNestableTask(int identifier, const StdClosure& task);
+  static bool PostNonNestableTask(const Closure& task);
+  static bool PostNonNestableTask(int identifier, const Closure& task);
 
-  static bool PostNonNestableDelayedTask(const StdClosure& task,
+  static bool PostNonNestableDelayedTask(const Closure& task,
                                          TimeDelta delay);
   static bool PostNonNestableDelayedTask(int identifier,
-                                         const StdClosure& task,
+                                         const Closure& task,
                                          TimeDelta delay);
 
   template <typename T1, typename T2>
@@ -88,11 +88,11 @@ class BASE_EXPORT ThreadManager {
   }
 
  private:
-  static void RunRepeatedly(const WeakCallback<StdClosure>& task,
+  static void RunRepeatedly(const WeakCallback<Closure>& task,
                             const TimeDelta& delay,
                             int times);
   static void RunRepeatedly2(int thread_id,
-                             const WeakCallback<StdClosure>& task,
+                             const WeakCallback<Closure>& task,
                              const TimeDelta& delay,
                              int times);
 

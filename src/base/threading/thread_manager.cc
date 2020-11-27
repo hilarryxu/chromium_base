@@ -135,12 +135,12 @@ FrameworkThread* ThreadManager::CurrentThread() {
   return tls->self;
 }
 
-bool ThreadManager::PostTask(const StdClosure& task) {
+bool ThreadManager::PostTask(const Closure& task) {
   MessageLoop::current()->PostTask(task);
   return true;
 }
 
-bool ThreadManager::PostTask(int identifier, const StdClosure& task) {
+bool ThreadManager::PostTask(int identifier, const Closure& task) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
   if (message_loop == NULL)
@@ -149,13 +149,13 @@ bool ThreadManager::PostTask(int identifier, const StdClosure& task) {
   return true;
 }
 
-bool ThreadManager::PostDelayedTask(const StdClosure& task, TimeDelta delay) {
+bool ThreadManager::PostDelayedTask(const Closure& task, TimeDelta delay) {
   MessageLoop::current()->PostDelayedTask(task, delay);
   return true;
 }
 
 bool ThreadManager::PostDelayedTask(int identifier,
-                                    const StdClosure& task,
+                                    const Closure& task,
                                     TimeDelta delay) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
@@ -165,30 +165,30 @@ bool ThreadManager::PostDelayedTask(int identifier,
   return true;
 }
 
-void ThreadManager::PostRepeatedTask(const WeakCallback<StdClosure>& task,
+void ThreadManager::PostRepeatedTask(const WeakCallback<Closure>& task,
                                      const TimeDelta& delay,
                                      int times) {
-  StdClosure closure =
+  Closure closure =
       base::Bind(&ThreadManager::RunRepeatedly, task, delay, times);
   base::ThreadManager::PostDelayedTask(closure, delay);
 }
 
 void ThreadManager::PostRepeatedTask(int thread_id,
-                                     const WeakCallback<StdClosure>& task,
+                                     const WeakCallback<Closure>& task,
                                      const TimeDelta& delay,
                                      int times) {
-  StdClosure closure =
+  Closure closure =
       base::Bind(&ThreadManager::RunRepeatedly2, thread_id, task, delay, times);
   base::ThreadManager::PostDelayedTask(thread_id, closure, delay);
 }
 
-bool ThreadManager::PostNonNestableTask(const StdClosure& task) {
+bool ThreadManager::PostNonNestableTask(const Closure& task) {
   MessageLoop::current()->PostNonNestableTask(task);
   return true;
 }
 
 bool ThreadManager::PostNonNestableTask(int identifier,
-                                        const StdClosure& task) {
+                                        const Closure& task) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
   if (message_loop == NULL)
@@ -197,14 +197,14 @@ bool ThreadManager::PostNonNestableTask(int identifier,
   return true;
 }
 
-bool ThreadManager::PostNonNestableDelayedTask(const StdClosure& task,
+bool ThreadManager::PostNonNestableDelayedTask(const Closure& task,
                                                TimeDelta delay) {
   MessageLoop::current()->PostNonNestableDelayedTask(task, delay);
   return true;
 }
 
 bool ThreadManager::PostNonNestableDelayedTask(int identifier,
-                                               const StdClosure& task,
+                                               const Closure& task,
                                                TimeDelta delay) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
@@ -214,7 +214,7 @@ bool ThreadManager::PostNonNestableDelayedTask(int identifier,
   return true;
 }
 
-void ThreadManager::RunRepeatedly(const WeakCallback<StdClosure>& task,
+void ThreadManager::RunRepeatedly(const WeakCallback<Closure>& task,
                                   const TimeDelta& delay,
                                   int times) {
   if (task.Expired()) {
@@ -233,7 +233,7 @@ void ThreadManager::RunRepeatedly(const WeakCallback<StdClosure>& task,
 }
 
 void ThreadManager::RunRepeatedly2(int thread_id,
-                                   const WeakCallback<StdClosure>& task,
+                                   const WeakCallback<Closure>& task,
                                    const TimeDelta& delay,
                                    int times) {
   if (task.Expired()) {

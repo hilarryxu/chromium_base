@@ -14,20 +14,19 @@ namespace base {
 
 MessageLoopProxy::~MessageLoopProxy() {}
 
-bool MessageLoopProxy::PostTask(const StdClosure& task) {
+bool MessageLoopProxy::PostTask(const Closure& task) {
   return PostTaskHelper(task, TimeDelta(), true);
 }
 
-bool MessageLoopProxy::PostDelayedTask(const StdClosure& task,
-                                       TimeDelta delay) {
+bool MessageLoopProxy::PostDelayedTask(const Closure& task, TimeDelta delay) {
   return PostTaskHelper(task, delay, true);
 }
 
-bool MessageLoopProxy::PostNonNestableTask(const StdClosure& task) {
+bool MessageLoopProxy::PostNonNestableTask(const Closure& task) {
   return PostTaskHelper(task, TimeDelta(), false);
 }
 
-bool MessageLoopProxy::PostNonNestableDelayedTask(const StdClosure& task,
+bool MessageLoopProxy::PostNonNestableDelayedTask(const Closure& task,
                                                   TimeDelta delay) {
   return PostTaskHelper(task, delay, false);
 }
@@ -66,7 +65,7 @@ void MessageLoopProxy::DeleteSelf() const {
 MessageLoopProxy::MessageLoopProxy()
     : target_message_loop_(MessageLoop::current()) {}
 
-bool MessageLoopProxy::PostTaskHelper(const StdClosure& task,
+bool MessageLoopProxy::PostTaskHelper(const Closure& task,
                                       TimeDelta delay,
                                       bool nestable) {
   AutoLock lock(message_loop_lock_);

@@ -150,22 +150,22 @@ void MessageLoop::QuitNow() {
     pump_->Quit();
 }
 
-void MessageLoop::PostTask(const StdClosure& task) {
+void MessageLoop::PostTask(const Closure& task) {
   PendingTask pending_task(task);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostDelayedTask(const StdClosure& task, TimeDelta delay) {
+void MessageLoop::PostDelayedTask(const Closure& task, TimeDelta delay) {
   PendingTask pending_task(task, TimeTicks::Now() + delay, true);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableTask(const StdClosure& task) {
+void MessageLoop::PostNonNestableTask(const Closure& task) {
   PendingTask pending_task(task, TimeTicks(), false);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableDelayedTask(const StdClosure& task,
+void MessageLoop::PostNonNestableDelayedTask(const Closure& task,
                                              TimeDelta delay) {
   PendingTask pending_task(task, TimeTicks::Now() + delay, false);
   AddToIncomingQueue(pending_task);
@@ -395,10 +395,10 @@ MessageLoop::AutoRunState::~AutoRunState() {
   loop_->state_ = previous_state_;
 }
 
-MessageLoop::PendingTask::PendingTask(const StdClosure& task)
+MessageLoop::PendingTask::PendingTask(const Closure& task)
     : std_task(task), nestable(true), sequence_num(0) {}
 
-MessageLoop::PendingTask::PendingTask(const StdClosure& task,
+MessageLoop::PendingTask::PendingTask(const Closure& task,
                                       TimeTicks delayed_run_time,
                                       bool nestable)
     : std_task(task),

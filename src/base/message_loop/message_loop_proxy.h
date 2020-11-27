@@ -27,11 +27,10 @@ class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
   static std::shared_ptr<MessageLoopProxy> current();
 
   // MessageLoopProxy implementation
-  virtual bool PostTask(const StdClosure& task);
-  virtual bool PostDelayedTask(const StdClosure& task, TimeDelta delay);
-  virtual bool PostNonNestableTask(const StdClosure& task);
-  virtual bool PostNonNestableDelayedTask(const StdClosure& task,
-                                          TimeDelta delay);
+  virtual bool PostTask(const Closure& task);
+  virtual bool PostDelayedTask(const Closure& task, TimeDelta delay);
+  virtual bool PostNonNestableTask(const Closure& task);
+  virtual bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay);
 
   template <typename T1, typename T2>
   bool PostTaskAndReply(const std::function<T1>& task,
@@ -61,7 +60,7 @@ class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
   // Called when the reference decreased to 0
   virtual void OnDestruct() const;
 
-  bool PostTaskHelper(const StdClosure& task, TimeDelta delay, bool nestable);
+  bool PostTaskHelper(const Closure& task, TimeDelta delay, bool nestable);
 
   void DeleteSelf() const;
 

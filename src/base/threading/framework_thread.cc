@@ -10,93 +10,89 @@
 #include "base/threading/framework_thread.h"
 #include "base/lazy_instance.h"
 
-namespace base
-{
+namespace base {
 
 // We use this thread-local variable to record whether or not a thread exited
 // because its Stop method was called.  This allows us to catch cases where
 // MessageLoop::Quit() is called directly, which is unexpected when using a
 // Thread to setup and run a MessageLoop.
-base::LazyInstance<base::ThreadLocalPointer<FrameworkThreadTlsData> > lazy_tls_data;
+base::LazyInstance<base::ThreadLocalPointer<FrameworkThreadTlsData> >
+    lazy_tls_data;
 
 FrameworkThread::FrameworkThread(const char* name)
-	: started_(false),
-	  stopping_(false),
-	  loop_type_(MessageLoop::kDefaultMessageLoop),
-	  message_loop_(NULL),
-	  event_(false, false),
-	  name_(name),
-	  thread_(0),
-	  id_(kInvalidThreadId)
-{
+    : started_(false),
+      stopping_(false),
+      loop_type_(MessageLoop::kDefaultMessageLoop),
+      message_loop_(NULL),
+      event_(false, false),
+      name_(name),
+      thread_(0),
+      id_(kInvalidThreadId) {}
 
+FrameworkThread::~FrameworkThread() {
+  Stop();
 }
 
-FrameworkThread::~FrameworkThread()
-{
-	Stop();
-}
-
-bool FrameworkThread::Start()
-{
-	return StartWithLoop(MessageLoop::kDefaultMessageLoop);
+bool FrameworkThread::Start() {
+  return StartWithLoop(MessageLoop::kDefaultMessageLoop);
 }
 
 #if defined(OS_WIN)
-bool FrameworkThread::StartWithLoop(const MessageLoop::Type type, Dispatcher *dispatcher)
+bool FrameworkThread::StartWithLoop(const MessageLoop::Type type,
+                                    Dispatcher* dispatcher)
 #else
 bool FrameworkThread::StartWithLoop(const MessageLoop::Type type)
 #endif
 {
-	if (message_loop_ != NULL)
-		return false;
+  if (message_loop_ != NULL)
+    return false;
 
-	loop_type_ = type;
+  loop_type_ = type;
 #if defined(OS_WIN)
-	dispatcher_ = dispatcher;
+  dispatcher_ = dispatcher;
 #endif
 
-	if (!Create())
-		return false;
+  if (!Create())
+    return false;
 
-	// Wait for the thread to start and initialize message_loop_
-	event_.Wait();
+  // Wait for the thread to start and initialize message_loop_
+  event_.Wait();
 
-	started_ = true;
-	return true;
+  started_ = true;
+  return true;
 }
 
 #if defined(OS_WIN)
-bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory *factory, Dispatcher *dispatcher)
+bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory* factory,
+                                    Dispatcher* dispatcher)
 #else
-bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory *factory)
+bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory* factory)
 #endif
 {
-	if (factory == NULL)
-		return false;
+  if (factory == NULL)
+    return false;
 
-	factory_.reset(factory);
-	loop_type_ = MessageLoop::kCustomMessageLoop;
+  factory_.reset(factory);
+  loop_type_ = MessageLoop::kCustomMessageLoop;
 #if defined(OS_WIN)
-	dispatcher_ = dispatcher;
+  dispatcher_ = dispatcher;
 #endif
 
-	if (!Create())
-		return false;
+  if (!Create())
+    return false;
 
-	// Wait for the thread to start and initialize message_loop_
-	event_.Wait();
+  // Wait for the thread to start and initialize message_loop_
+  event_.Wait();
 
-	started_ = true;
+  started_ = true;
 
-	return true;
+  return true;
 }
 
-bool FrameworkThread::Create()
-{
-	id_ = kInvalidThreadId;
+bool FrameworkThread::Create() {
+  id_ = kInvalidThreadId;
 
-	SetThreadWasQuitProperly(false);
+  SetThreadWasQuitProperly(false);
 
   // Hold the thread_lock_ while starting a new thread, so that we can make sure
   // that thread_ is populated before the newly created thread accesses it.
@@ -112,206 +108,194 @@ bool FrameworkThread::Create()
 }
 
 #if defined(OS_WIN)
-void FrameworkThread::RunOnCurrentThreadWithLoop(const MessageLoop::Type type, Dispatcher *dispatcher)
+void FrameworkThread::RunOnCurrentThreadWithLoop(const MessageLoop::Type type,
+                                                 Dispatcher* dispatcher)
 #else
 void FrameworkThread::RunOnCurrentThreadWithLoop(const MessageLoop::Type type)
 #endif
 {
-	loop_type_ = type;
-	started_ = true;
+  loop_type_ = type;
+  started_ = true;
 #if defined(OS_WIN)
-	dispatcher_ = dispatcher;
+  dispatcher_ = dispatcher;
 #endif
-	ThreadMain();
+  ThreadMain();
 }
 
-void FrameworkThread::Stop()
-{
-	AutoLock lock(thread_lock_);
-	if (thread_.is_null())
-		return;
+void FrameworkThread::Stop() {
+  AutoLock lock(thread_lock_);
+  if (thread_.is_null())
+    return;
 
-	StopSoon();
+  StopSoon();
 
-	// Wait for the thread to exit.
-	//
-	// TODO(darin): Unfortunately, we need to keep message_loop_ around until
-	// the thread exits.  Some consumers are abusing the API.  Make them stop.
-	//
-	PlatformThread::Join(thread_);
-	thread_ = base::PlatformThreadHandle();
+  // Wait for the thread to exit.
+  //
+  // TODO(darin): Unfortunately, we need to keep message_loop_ around until
+  // the thread exits.  Some consumers are abusing the API.  Make them stop.
+  //
+  PlatformThread::Join(thread_);
+  thread_ = base::PlatformThreadHandle();
 
-	// The thread should nullify message_loop_ on exit.
-	// DCHECK(!message_loop_);
+  // The thread should nullify message_loop_ on exit.
+  // DCHECK(!message_loop_);
 
-	started_ = false;
-	stopping_ = false;
+  started_ = false;
+  stopping_ = false;
 }
 
-void FrameworkThread::StopSoon()
-{
-	if (stopping_ || !message_loop_)
-		return;
+void FrameworkThread::StopSoon() {
+  if (stopping_ || !message_loop_)
+    return;
 
-	stopping_ = true;
-	message_loop_->PostNonNestableTask(
-		base::Bind(&FrameworkThread::DoStopSoon, this));
+  stopping_ = true;
+  message_loop_->PostNonNestableTask(
+      base::Bind(&FrameworkThread::DoStopSoon, this));
 }
 
-void FrameworkThread::DoStopSoon()
-{
-	MessageLoop::current()->Quit();
-	SetThreadWasQuitProperly(true);
+void FrameworkThread::DoStopSoon() {
+  MessageLoop::current()->Quit();
+  SetThreadWasQuitProperly(true);
 }
 
 bool FrameworkThread::IsRunning() const {
-	AutoLock lock(thread_lock_);
-	return !thread_.is_null();
+  AutoLock lock(thread_lock_);
+  return !thread_.is_null();
 }
 
-void FrameworkThread::ThreadMain()
-{
-	id_ = PlatformThread::CurrentId();
-	PlatformThread::SetName(name_.c_str());
+void FrameworkThread::ThreadMain() {
+  id_ = PlatformThread::CurrentId();
+  PlatformThread::SetName(name_.c_str());
 
-	InitTlsData(this);
-	SetThreadWasQuitProperly(false);
-	{
-		// The message loop for this thread.
-		MessageLoop *message_loop;
-		if (loop_type_ == MessageLoop::kCustomMessageLoop)
-			message_loop = factory_->CreateMessageLoop();
-		else {
-			// if (loop_type_ == MessageLoop::kIOMessageLoop)
-			// 	message_loop = new IOMessageLoop;
+  InitTlsData(this);
+  SetThreadWasQuitProperly(false);
+  {
+    // The message loop for this thread.
+    MessageLoop* message_loop;
+    if (loop_type_ == MessageLoop::kCustomMessageLoop)
+      message_loop = factory_->CreateMessageLoop();
+    else {
+      // if (loop_type_ == MessageLoop::kIOMessageLoop)
+      // 	message_loop = new IOMessageLoop;
 #if defined(OS_WIN)
-			if (loop_type_ == MessageLoop::kUIMessageLoop)
-				message_loop = new UIMessageLoop;
+      if (loop_type_ == MessageLoop::kUIMessageLoop)
+        message_loop = new UIMessageLoop;
 #endif
-			else
-				message_loop = new MessageLoop;
-		}
-		message_loop_ = message_loop;
+      else
+        message_loop = new MessageLoop;
+    }
+    message_loop_ = message_loop;
 
-		// Let the thread do extra initialization.
-		// Let's do this before signaling we are started.
-		Init();
+    // Let the thread do extra initialization.
+    // Let's do this before signaling we are started.
+    Init();
 
-		event_.Signal();
+    event_.Signal();
 
 #if defined(OS_WIN)
-		message_loop_->RunWithDispatcher(dispatcher_);
+    message_loop_->RunWithDispatcher(dispatcher_);
 #else
-		message_loop_->Run();
-#endif // OS_WIN
+    message_loop_->Run();
+#endif  // OS_WIN
 
-		// Let the thread do extra cleanup.
-		Cleanup();
+    // Let the thread do extra cleanup.
+    Cleanup();
 
-		//DCHECK(GetThreadWasQuitProperly());
+    // DCHECK(GetThreadWasQuitProperly());
 
-		// We can't receive messages anymore.
-		if (loop_type_ != MessageLoop::kCustomMessageLoop)
-			delete message_loop_;
-		else
-		{
-			delete message_loop_;
-			factory_.reset();
-		}
-		message_loop_ = NULL;
-	}
-	id_ = kInvalidThreadId;
-	{
-		FrameworkThreadTlsData *tls = GetTlsData();
-		if (tls != NULL)
-		{ }
-			//DCHECK(tls->managed == 0); // you must call ThreadManager::UnregisterThread before come there
-	}
-	FreeTlsData();
+    // We can't receive messages anymore.
+    if (loop_type_ != MessageLoop::kCustomMessageLoop)
+      delete message_loop_;
+    else {
+      delete message_loop_;
+      factory_.reset();
+    }
+    message_loop_ = NULL;
+  }
+  id_ = kInvalidThreadId;
+  {
+    FrameworkThreadTlsData* tls = GetTlsData();
+    if (tls != NULL) {
+    }
+    // DCHECK(tls->managed == 0); // you must call
+    // ThreadManager::UnregisterThread before come there
+  }
+  FreeTlsData();
 }
 
-void FrameworkThread::InitTlsData(FrameworkThread *self)
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls == NULL);
-	if (tls != NULL)
-		return;
-	tls = new FrameworkThreadTlsData;
-	tls->self = self;
-	tls->managed = 0;
-	tls->managed_thread_id = -1;
-	tls->quit_properly = false;
-	tls->custom_data = NULL;
-	lazy_tls_data.Pointer()->Set(tls);
+void FrameworkThread::InitTlsData(FrameworkThread* self) {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls == NULL);
+  if (tls != NULL)
+    return;
+  tls = new FrameworkThreadTlsData;
+  tls->self = self;
+  tls->managed = 0;
+  tls->managed_thread_id = -1;
+  tls->quit_properly = false;
+  tls->custom_data = NULL;
+  lazy_tls_data.Pointer()->Set(tls);
 }
 
-void FrameworkThread::FreeTlsData()
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return;
-	lazy_tls_data.Pointer()->Set(NULL);
-	delete tls;
+void FrameworkThread::FreeTlsData() {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return;
+  lazy_tls_data.Pointer()->Set(NULL);
+  delete tls;
 }
 
-FrameworkThreadTlsData* FrameworkThread::GetTlsData()
-{
-	return lazy_tls_data.Pointer()->Get();
+FrameworkThreadTlsData* FrameworkThread::GetTlsData() {
+  return lazy_tls_data.Pointer()->Get();
 }
 
-bool FrameworkThread::GetThreadWasQuitProperly()
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return false;
-	return tls->quit_properly;
+bool FrameworkThread::GetThreadWasQuitProperly() {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return false;
+  return tls->quit_properly;
 }
 
-void FrameworkThread::SetThreadWasQuitProperly(bool flag)
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return;
-	tls->quit_properly = flag;
+void FrameworkThread::SetThreadWasQuitProperly(bool flag) {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return;
+  tls->quit_properly = flag;
 }
 
-FrameworkThread* FrameworkThread::current()
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return NULL;
-	return tls->self;
+FrameworkThread* FrameworkThread::current() {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return NULL;
+  return tls->self;
 }
 
-int FrameworkThread::GetManagedThreadId()
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return -1;
-	return tls->managed_thread_id;
+int FrameworkThread::GetManagedThreadId() {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return -1;
+  return tls->managed_thread_id;
 }
 
-void* FrameworkThread::GetCustomTlsData()
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return NULL;
-	return tls->custom_data;
+void* FrameworkThread::GetCustomTlsData() {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return NULL;
+  return tls->custom_data;
 }
 
-void FrameworkThread::SetCustomTlsData(void *data)
-{
-	FrameworkThreadTlsData *tls = GetTlsData();
-	//DCHECK(tls != NULL);
-	if (tls == NULL)
-		return;
-	tls->custom_data = data;
+void FrameworkThread::SetCustomTlsData(void* data) {
+  FrameworkThreadTlsData* tls = GetTlsData();
+  // DCHECK(tls != NULL);
+  if (tls == NULL)
+    return;
+  tls->custom_data = data;
 }
 
 }  // namespace base

@@ -9,53 +9,52 @@
 #include <list>
 #include "base/observer_list.h"
 
-namespace base
-{
+namespace base {
 
-class BASE_EXPORT WinUIMessagePump: public WinMessagePump
-{
-public:
-	static const int kMessageFilterCode = 0x5001;
+class BASE_EXPORT WinUIMessagePump : public WinMessagePump {
+ public:
+  static const int kMessageFilterCode = 0x5001;
 
-	class BASE_EXPORT UIObserver
-	{
-	public:
-		virtual void PreProcessMessage(const MSG &msg) = 0;
-		virtual void PostProcessMessage(const MSG &msg) = 0;
-	};
+  class BASE_EXPORT UIObserver {
+   public:
+    virtual void PreProcessMessage(const MSG& msg) = 0;
+    virtual void PostProcessMessage(const MSG& msg) = 0;
+  };
 
-	void AddObserver(UIObserver *observer);
-	void RemoveObserver(UIObserver *observer);
+  void AddObserver(UIObserver* observer);
+  void RemoveObserver(UIObserver* observer);
 
-	WinUIMessagePump();
-	virtual ~WinUIMessagePump();
+  WinUIMessagePump();
+  virtual ~WinUIMessagePump();
 
-	virtual void ScheduleWork();
-	virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
+  virtual void ScheduleWork();
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
 
-	// 通知MessagePump提取并处理消息队列中的WM_PAINT消息
-	void PumpOutPendingPaintMessages();
+  // 閫氱煡MessagePump鎻愬彇骞跺鐞嗘秷鎭槦鍒椾腑鐨刉M_PAINT娑堟伅
+  void PumpOutPendingPaintMessages();
 
-private:
-	static LRESULT CALLBACK WndProcThunk(
-	  HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
-	virtual void DoRunLoop();
-	virtual void PreProcessMessage(const MSG& msg);
-	virtual void PostProcessMessage(const MSG& msg);
-	void InitMessageWnd();
-	void WaitForWork();
-	void HandleWorkMessage();
-	void HandleTimerMessage();
-	bool ProcessNextWindowsMessage();
-	bool ProcessMessageHelper(const MSG& msg);
-	bool ProcessPumpReplacementMessage();
+ private:
+  static LRESULT CALLBACK WndProcThunk(HWND hwnd,
+                                       UINT message,
+                                       WPARAM wparam,
+                                       LPARAM lparam);
+  virtual void DoRunLoop();
+  virtual void PreProcessMessage(const MSG& msg);
+  virtual void PostProcessMessage(const MSG& msg);
+  void InitMessageWnd();
+  void WaitForWork();
+  void HandleWorkMessage();
+  void HandleTimerMessage();
+  bool ProcessNextWindowsMessage();
+  bool ProcessMessageHelper(const MSG& msg);
+  bool ProcessPumpReplacementMessage();
 
-	// 用来接收自定义消息的隐藏窗口
-	HWND message_hwnd_;
-	// UIObserver列表
-	ObserverList<UIObserver> observers_;
+  // 鐢ㄦ潵鎺ユ敹鑷畾涔夋秷鎭殑闅愯棌绐楀彛
+  HWND message_hwnd_;
+  // UIObserver鍒楄〃
+  ObserverList<UIObserver> observers_;
 };
 
-} // namespace base
+}  // namespace base
 
-#endif // BASE_FRAMEWORK_WIN_UI_MESSAGE_PUMP_H_
+#endif  // BASE_FRAMEWORK_WIN_UI_MESSAGE_PUMP_H_

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2011, NetEase Inc. All rights reserved.
+// Copyright (c) 2011, NetEase Inc. All rights reserved.
 //
 // Author: wrt(guangguang)
 // Date: 2011/6/8
@@ -7,17 +7,10 @@
 
 #include "base/message_loop/message_pump.h"
 
-namespace base
-{
+namespace base {
 
-MessagePump::MessagePump()
-{
+MessagePump::MessagePump() {}
 
-}
+MessagePump::~MessagePump() {}
 
-MessagePump::~MessagePump()
-{
-
-}
-
-} // namespace base
+}  // namespace base

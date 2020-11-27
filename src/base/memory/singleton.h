@@ -28,15 +28,14 @@
 
 namespace base {
 
-#define SINGLETON_DEFINE(TypeName)        \
-static TypeName* GetInstance()          \
-{                       \
-  static TypeName type_instance;        \
-  return &type_instance;            \
-}                       \
-                        \
-TypeName(const TypeName&) = delete;       \
-TypeName& operator=(const TypeName&) = delete
+#define SINGLETON_DEFINE(TypeName)    \
+  static TypeName* GetInstance() {    \
+    static TypeName type_instance;    \
+    return &type_instance;            \
+  }                                   \
+                                      \
+  TypeName(const TypeName&) = delete; \
+  TypeName& operator=(const TypeName&) = delete
 
 namespace internal {
 
@@ -52,11 +51,10 @@ class DeleteTraceLogForTesting;
 
 }  // namespace internal
 
-
 // Default traits for Singleton<Type>. Calls operator new and operator delete on
 // the object. Registers automatic deletion at process exit.
 // Overload if you need arguments or another memory allocation function.
-template<typename Type>
+template <typename Type>
 struct DefaultSingletonTraits {
   // Allocates the object.
   static Type* New() {
@@ -66,9 +64,7 @@ struct DefaultSingletonTraits {
   }
 
   // Destroys the object.
-  static void Delete(Type* x) {
-    delete x;
-  }
+  static void Delete(Type* x) { delete x; }
 
   // Set to true to automatically register deletion of the object on process
   // exit. See below for the required call that makes this happen.
@@ -82,18 +78,16 @@ struct DefaultSingletonTraits {
 #endif
 };
 
-
 // Alternate traits for use with the Singleton<Type>.  Identical to
 // DefaultSingletonTraits except that the Singleton will not be cleaned up
 // at exit.
-template<typename Type>
+template <typename Type>
 struct LeakySingletonTraits : public DefaultSingletonTraits<Type> {
   static const bool kRegisterAtExit = false;
 #ifndef NDEBUG
   static const bool kAllowedToAccessOnNonjoinableThread = true;
 #endif
 };
-
 
 // Alternate traits for use with the Singleton<Type>.  Allocates memory
 // for the singleton instance from a static buffer.  The singleton will
@@ -125,7 +119,7 @@ struct StaticMemorySingletonTraits {
     if (subtle::NoBarrier_AtomicExchange(&dead_, 1))
       return NULL;
 
-    return new(buffer_.void_data()) Type();
+    return new (buffer_.void_data()) Type();
   }
 
   static void Delete(Type* p) {

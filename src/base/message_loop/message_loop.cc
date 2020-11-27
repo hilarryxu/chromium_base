@@ -1,761 +1,502 @@
-// Copyright 2013 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+﻿// Copyright (c) 2011, NetEase Inc. All rights reserved.
+//
+// Author: wrt(guangguang)
+// Date: 2011/06/09
+//
+// This file trys to implement a cross flatform message loop,
+// the mechanism of which is from the Google Chrome project.
 
 #include "base/message_loop/message_loop.h"
 
-#include <algorithm>
-#include <utility>
-
-#include "base/bind.h"
-#include "base/compiler_specific.h"
+#include <assert.h>
 #include "base/lazy_instance.h"
-#include "base/logging.h"
-#include "base/memory/scoped_ptr.h"
-#include "base/message_loop/message_pump_default.h"
-// #include "base/metrics/histogram.h"
-// #include "base/metrics/statistics_recorder.h"
-#include "base/run_loop.h"
-// #include "base/third_party/dynamic_annotations/dynamic_annotations.h"
-#include "base/thread_task_runner_handle.h"
 #include "base/threading/thread_local.h"
-#include "base/time/time.h"
-// #include "base/trace_event/trace_event.h"
-// #include "base/tracked_objects.h"
-#include "build/build_config.h"
 
-#if defined(OS_MACOSX)
-#include "base/message_loop/message_pump_mac.h"
-#endif
-#if defined(OS_POSIX) && !defined(OS_IOS)
-#include "base/message_loop/message_pump_libevent.h"
-#endif
-#if defined(OS_ANDROID)
-#include "base/message_loop/message_pump_android.h"
-#endif
-#if defined(USE_GLIB)
-#include "base/message_loop/message_pump_glib.h"
-#endif
+namespace base
+{
 
-namespace base {
+LazyInstance<ThreadLocalPointer<MessageLoop> > g_lazy_ptr;
 
-namespace {
+MessageLoop::MessageLoop()
+	: type_(kDefaultMessageLoop),
+	  state_(NULL),
+#if defined(OS_WIN)
+	  os_modal_loop_(false),
+#endif // OS_WIN
+	  nestable_tasks_allowed_(true),
+	  next_delayed_task_sequence_num_(0)
+{
+	// 一个线程内不能存在两个或以上MessageLoop
+	assert(g_lazy_ptr.Pointer()->Get() == NULL);
+	// 默认消息循环
+	if (type_ == kDefaultMessageLoop)
+		pump_.reset(new DefaultMessagePump);
+	g_lazy_ptr.Pointer()->Set(this);
 
-// A lazily created thread local storage for quick access to a thread's message
-// loop, if one exists.  This should be safe and free of static constructors.
-LazyInstance<base::ThreadLocalPointer<MessageLoop> >::Leaky lazy_tls_ptr =
-    LAZY_INSTANCE_INITIALIZER;
+	message_loop_proxy_.reset(new MessageLoopProxy, &MessageLoopProxyTraits::Destruct);
+	message_loop_proxy_->target_message_loop_ = this;
+}
 
-// Logical events for Histogram profiling. Run with --message-loop-histogrammer
-// to get an accounting of messages and actions taken on each thread.
-const int kTaskRunEvent = 0x1;
-#if !defined(OS_NACL)
-const int kTimerEvent = 0x2;
+MessageLoop::~MessageLoop()
+{
+	bool has_work = false;
 
-// Provide range of message IDs for use in histogramming and debug display.
-const int kLeastNonZeroMessageId = 1;
-const int kMaxMessageId = 1099;
-const int kNumberOfDistinctMessagesDisplayed = 1100;
+	// 清理未处理的任务可能导致生成新的任务，
+	// 这里通过有限次的循环尝试清理这些新生成的任务
+	for (int i = 0; i < 100; i++)
+	{
+		DeletePendingTasks();
+		ReloadWorkQueue();
+		has_work = DeletePendingTasks();
+		if (!has_work)
+			break;
+	}
 
-// Provide a macro that takes an expression (such as a constant, or macro
-// constant) and creates a pair to initialize an array of pairs.  In this case,
-// our pair consists of the expressions value, and the "stringized" version
-// of the expression (i.e., the expression put in quotes).  For example, if
-// we have:
-//    #define FOO 2
-//    #define BAR 5
-// then the following:
-//    VALUE_TO_NUMBER_AND_NAME(FOO + BAR)
-// will expand to:
-//   {7, "FOO + BAR"}
-// We use the resulting array as an argument to our histogram, which reads the
-// number as a bucket identifier, and proceeds to use the corresponding name
-// in the pair (i.e., the quoted string) when printing out a histogram.
-#define VALUE_TO_NUMBER_AND_NAME(name) {name, #name},
+	assert(!has_work);
 
-// const LinearHistogram::DescriptionPair event_descriptions_[] = {
-//   // Provide some pretty print capability in our histogram for our internal
-//   // messages.
+	PreDestruct();
 
-//   // A few events we handle (kindred to messages), and used to profile actions.
-//   VALUE_TO_NUMBER_AND_NAME(kTaskRunEvent)
-//   VALUE_TO_NUMBER_AND_NAME(kTimerEvent)
+	message_loop_proxy_->WillDestroyCurrentMessageLoop();
+	message_loop_proxy_ = nullptr;
 
-//   {-1, NULL}  // The list must be null-terminated, per API to histogram.
-// };
-#endif  // !defined(OS_NACL)
+	g_lazy_ptr.Pointer()->Set(NULL);
+}
 
-bool enable_histogrammer_ = false;
+MessageLoop* MessageLoop::current()
+{
+	return g_lazy_ptr.Pointer()->Get();
+}
 
-MessageLoop::MessagePumpFactory* message_pump_for_ui_factory_ = NULL;
+#if defined(OS_WIN)
 
-#if defined(OS_IOS)
-typedef MessagePumpIOSForIO MessagePumpForIO;
-#elif defined(OS_NACL_SFI)
-typedef MessagePumpDefault MessagePumpForIO;
+UIMessageLoop* MessageLoop::ToUIMessageLoop()
+{
+	if (type_ == kUIMessageLoop)
+		return reinterpret_cast<UIMessageLoop *>(this);
+	return NULL;
+}
+
+IOMessageLoop* MessageLoop::ToIOMessageLoop()
+{
+	if (type_ == kIOMessageLoop)
+		return reinterpret_cast<IOMessageLoop *>(this);
+	return NULL;
+}
+
+void MessageLoop::RunWithDispatcher(Dispatcher *dispatcher)
+{
+	assert(this == current());
+	AutoRunState state(this);
+	state_->dispatcher = dispatcher;
+	RunInternal();
+}
+
 #elif defined(OS_POSIX)
-typedef MessagePumpLibevent MessagePumpForIO;
-#endif
-
-#if !defined(OS_NACL_SFI)
-MessagePumpForIO* ToPumpIO(MessagePump* pump) {
-  return static_cast<MessagePumpForIO*>(pump);
+	
+IOMessageLoop* MessageLoop::ToIOMessageLoop()
+{
+	if (type_ == kIOMessageLoop)
+		return reinterpret_cast<IOMessageLoop *>(this);
+	return NULL;
 }
-#endif  // !defined(OS_NACL_SFI)
+	
+#endif // OS_WIN
 
-scoped_ptr<MessagePump> ReturnPump(scoped_ptr<MessagePump> pump) {
-  return pump;
-}
-
-}  // namespace
-
-//------------------------------------------------------------------------------
-
-MessageLoop::TaskObserver::TaskObserver() {
+void MessageLoop::Run()
+{
+	assert(this == current());
+	AutoRunState state(this);
+	RunInternal();
 }
 
-MessageLoop::TaskObserver::~TaskObserver() {
+void MessageLoop::RunAllPending()
+{
+	assert(this == current());
+	AutoRunState state(this);
+	state_->quit_received = true;  // Means run until we would otherwise block.
+	RunInternal();
 }
 
-MessageLoop::DestructionObserver::~DestructionObserver() {
-}
-
-//------------------------------------------------------------------------------
-
-MessageLoop::MessageLoop(Type type)
-    : MessageLoop(type, MessagePumpFactoryCallback()) {
-  BindToCurrentThread();
-}
-
-MessageLoop::MessageLoop(scoped_ptr<MessagePump> pump)
-    : MessageLoop(TYPE_CUSTOM, Bind(&ReturnPump, Passed(&pump))) {
-  BindToCurrentThread();
-}
-
-MessageLoop::~MessageLoop() {
-  // If |pump_| is non-null, this message loop has been bound and should be the
-  // current one on this thread. Otherwise, this loop is being destructed before
-  // it was bound to a thread, so a different message loop (or no loop at all)
-  // may be current.
-  DCHECK((pump_ && current() == this) || (!pump_ && current() != this));
-
-  // iOS just attaches to the loop, it doesn't Run it.
-  // TODO(stuartmorgan): Consider wiring up a Detach().
-#if !defined(OS_IOS)
-  DCHECK(!run_loop_);
-#endif
+void MessageLoop::RunInternal()
+{
+	assert(this == current());
 
 #if defined(OS_WIN)
-  if (in_high_res_mode_)
-    Time::ActivateHighResolutionTimer(false);
-#endif
-  // Clean up any unprocessed tasks, but take care: deleting a task could
-  // result in the addition of more tasks (e.g., via DeleteSoon).  We set a
-  // limit on the number of times we will allow a deleted task to generate more
-  // tasks.  Normally, we should only pass through this loop once or twice.  If
-  // we end up hitting the loop limit, then it is probably due to one task that
-  // is being stubborn.  Inspect the queues to see who is left.
-  bool did_work;
-  for (int i = 0; i < 100; ++i) {
-    DeletePendingTasks();
-    ReloadWorkQueue();
-    // If we end up with empty queues, then break out of the loop.
-    did_work = DeletePendingTasks();
-    if (!did_work)
-      break;
-  }
-  DCHECK(!did_work);
-
-  // Let interested parties have one last shot at accessing this.
-  FOR_EACH_OBSERVER(DestructionObserver, destruction_observers_,
-                    WillDestroyCurrentMessageLoop());
-
-  thread_task_runner_handle_.reset();
-
-  // Tell the incoming queue that we are dying.
-  incoming_task_queue_->WillDestroyCurrentMessageLoop();
-  incoming_task_queue_ = NULL;
-  unbound_task_runner_ = NULL;
-  task_runner_ = NULL;
-
-  // OK, now make it so that no one can find us.
-  if (current() == this)
-    lazy_tls_ptr.Pointer()->Set(nullptr);
-}
-
-// static
-MessageLoop* MessageLoop::current() {
-  // TODO(darin): sadly, we cannot enable this yet since people call us even
-  // when they have no intention of using us.
-  // DCHECK(loop) << "Ouch, did you forget to initialize me?";
-  return lazy_tls_ptr.Pointer()->Get();
-}
-
-// static
-void MessageLoop::EnableHistogrammer(bool enable) {
-  enable_histogrammer_ = enable;
-}
-
-// static
-bool MessageLoop::InitMessagePumpForUIFactory(MessagePumpFactory* factory) {
-  if (message_pump_for_ui_factory_)
-    return false;
-
-  message_pump_for_ui_factory_ = factory;
-  return true;
-}
-
-// static
-scoped_ptr<MessagePump> MessageLoop::CreateMessagePumpForType(Type type) {
-// TODO(rvargas): Get rid of the OS guards.
-#if defined(USE_GLIB) && !defined(OS_NACL)
-  typedef MessagePumpGlib MessagePumpForUI;
-#elif defined(OS_LINUX) && !defined(OS_NACL)
-  typedef MessagePumpLibevent MessagePumpForUI;
+	if (state_->dispatcher && type() == kUIMessageLoop)
+	{
+		static_cast<WinUIMessagePump *>(pump_.get())->
+			RunWithDispatcher(this, state_->dispatcher);
+		return;
+	}
 #endif
 
-#if defined(OS_IOS) || defined(OS_MACOSX)
-#define MESSAGE_PUMP_UI scoped_ptr<MessagePump>(MessagePumpMac::Create())
-#elif defined(OS_NACL)
-// Currently NaCl doesn't have a UI MessageLoop.
-// TODO(abarth): Figure out if we need this.
-#define MESSAGE_PUMP_UI scoped_ptr<MessagePump>()
-#else
-#define MESSAGE_PUMP_UI scoped_ptr<MessagePump>(new MessagePumpForUI())
-#endif
-
-#if defined(OS_MACOSX)
-  // Use an OS native runloop on Mac to support timer coalescing.
-  #define MESSAGE_PUMP_DEFAULT \
-      scoped_ptr<MessagePump>(new MessagePumpCFRunLoop())
-#else
-  #define MESSAGE_PUMP_DEFAULT scoped_ptr<MessagePump>(new MessagePumpDefault())
-#endif
-
-  if (type == MessageLoop::TYPE_UI) {
-    if (message_pump_for_ui_factory_)
-      return message_pump_for_ui_factory_();
-    return MESSAGE_PUMP_UI;
-  }
-  if (type == MessageLoop::TYPE_IO)
-    return scoped_ptr<MessagePump>(new MessagePumpForIO());
-
-#if defined(OS_ANDROID)
-  if (type == MessageLoop::TYPE_JAVA)
-    return scoped_ptr<MessagePump>(new MessagePumpForUI());
-#endif
-
-  DCHECK_EQ(MessageLoop::TYPE_DEFAULT, type);
-  return MESSAGE_PUMP_DEFAULT;
+	pump_->Run(this);
 }
 
-void MessageLoop::AddDestructionObserver(
-    DestructionObserver* destruction_observer) {
-  DCHECK_EQ(this, current());
-  destruction_observers_.AddObserver(destruction_observer);
+bool MessageLoop::DeletePendingTasks()
+{
+	bool has_work = false;
+	while (!work_queue_.empty())
+	{
+		PendingTask task = work_queue_.front();
+		work_queue_.pop();
+		if (!task.delayed_run_time.is_null())
+			AddToDelayedWorkQueue(task);
+	}
+
+	while (!deferred_non_nestable_work_queue_.empty())
+		deferred_non_nestable_work_queue_.pop();
+
+	has_work = !delayed_work_queue_.empty();
+	while (!delayed_work_queue_.empty())
+		delayed_work_queue_.pop();
+
+	return has_work;
 }
 
-void MessageLoop::RemoveDestructionObserver(
-    DestructionObserver* destruction_observer) {
-  DCHECK_EQ(this, current());
-  destruction_observers_.RemoveObserver(destruction_observer);
+void MessageLoop::Quit()
+{
+	if (state_)
+		state_->quit_received = true;
 }
 
-void MessageLoop::PostTask(
-    const tracked_objects::Location& from_here,
-    const Closure& task) {
-  task_runner_->PostTask(from_here, task);
+void MessageLoop::QuitNow()
+{
+	if (pump_)
+		pump_->Quit();
 }
 
-void MessageLoop::PostDelayedTask(
-    const tracked_objects::Location& from_here,
-    const Closure& task,
-    TimeDelta delay) {
-  task_runner_->PostDelayedTask(from_here, task, delay);
+void MessageLoop::PostTask(const StdClosure &task)
+{
+	PendingTask pending_task(task);
+	AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableTask(
-    const tracked_objects::Location& from_here,
-    const Closure& task) {
-  task_runner_->PostNonNestableTask(from_here, task);
+void MessageLoop::PostDelayedTask(const StdClosure &task, TimeDelta delay)
+{
+	PendingTask pending_task(task,
+		TimeTicks::Now() + delay,
+		true);
+	AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableDelayedTask(
-    const tracked_objects::Location& from_here,
-    const Closure& task,
-    TimeDelta delay) {
-  task_runner_->PostNonNestableDelayedTask(from_here, task, delay);
+void MessageLoop::PostNonNestableTask(const StdClosure &task)
+{
+	PendingTask pending_task(task,
+		TimeTicks(),
+		false);
+	AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::Run() {
-  DCHECK(pump_);
-  RunLoop run_loop;
-  run_loop.Run();
+void MessageLoop::PostNonNestableDelayedTask(const StdClosure &task, TimeDelta delay)
+{
+	PendingTask pending_task(task,
+		TimeTicks::Now() + delay,
+		false);
+	AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::RunUntilIdle() {
-  DCHECK(pump_);
-  RunLoop run_loop;
-  run_loop.RunUntilIdle();
+TimeTicks MessageLoop::EvalDelayedRuntime(int64_t delay_ms)
+{
+	TimeTicks delayed_run_time;
+	if (delay_ms > 0)
+		delayed_run_time = TimeTicks::Now() + TimeDelta::FromMilliseconds(delay_ms);
+	return delayed_run_time;
 }
 
-void MessageLoop::QuitWhenIdle() {
-  DCHECK_EQ(this, current());
-  if (run_loop_) {
-    run_loop_->quit_when_idle_received_ = true;
-  } else {
-    NOTREACHED() << "Must be inside Run to call Quit";
-  }
+void MessageLoop::AddToIncomingQueue(const PendingTask &task)
+{
+	// 本方法可能会在另一个线程中被执行，所以必须线程安全
+	std::shared_ptr<MessagePump> pump;
+	{
+		AutoLock lock(incoming_queue_lock_);
+		bool was_empty = incoming_queue_.empty();
+		incoming_queue_.push(task);
+		if (!was_empty)
+			return;
+		// 因为这函数可能是间接地在另一个线程中被调用的，
+		// 此时MessageLoop中可能正有任务在运行，
+		// 这些任务中可能包含销毁MessageLoop的任务，
+		// 为了保证对MessageLoop中的MessagePump引用有效，
+		// 这里需要用到引用指针
+		pump = pump_;
+	}
+	pump->ScheduleWork();
 }
 
-void MessageLoop::QuitNow() {
-  DCHECK_EQ(this, current());
-  if (run_loop_) {
-    pump_->Quit();
-  } else {
-    NOTREACHED() << "Must be inside Run to call Quit";
-  }
+void MessageLoop::AddToDelayedWorkQueue(const PendingTask &task)
+{
+	PendingTask new_task(task);
+	new_task.sequence_num = next_delayed_task_sequence_num_++;
+	delayed_work_queue_.push(new_task);
 }
 
-bool MessageLoop::IsType(Type type) const {
-  return type_ == type;
+void MessageLoop::ReloadWorkQueue()
+{
+	if (!work_queue_.empty())
+		return;
+
+	{
+		AutoLock lock(incoming_queue_lock_);
+		if (incoming_queue_.empty())
+			return;
+		// 常数时间交换内存
+		work_queue_.Swap(&incoming_queue_);
+	}
 }
 
-static void QuitCurrentWhenIdle() {
-  MessageLoop::current()->QuitWhenIdle();
+bool MessageLoop::DeferOrRunPendingTask(const PendingTask &task)
+{
+	// 任务符合立即执行的条件，那么执行之
+	if (task.nestable || state_->run_depth == 1)
+	{
+		RunTask(task);
+		return true;
+	}
+	// 不可嵌套任务，需要缓存之直到在最顶层MessageLoop中执行
+	deferred_non_nestable_work_queue_.push(task);
+	return false;
 }
 
-// static
-Closure MessageLoop::QuitWhenIdleClosure() {
-  return Bind(&QuitCurrentWhenIdle);
+void MessageLoop::RunTask(const PendingTask &task)
+{
+	assert(nestable_tasks_allowed_);
+
+	// 考虑到最坏情况下，任务可能是不可重入的，
+	// 所以暂时禁用嵌套任务
+
+	nestable_tasks_allowed_ = false;
+	PendingTask pending_task = task;
+	PreProcessTask();
+	pending_task.Run();
+	PostPrecessTask();
+	nestable_tasks_allowed_ = true;
 }
 
-void MessageLoop::SetNestableTasksAllowed(bool allowed) {
-  if (allowed) {
-    // Kick the native pump just in case we enter a OS-driven nested message
-    // loop.
-    pump_->ScheduleWork();
-  }
-  nestable_tasks_allowed_ = allowed;
+bool MessageLoop::DoWork()
+{
+	// 任务当前是否允许被执行
+	if (!nestable_tasks_allowed_)
+		return false;
+
+	for (;;)
+	{
+		// 先从incoming队列取任务
+		ReloadWorkQueue();
+		if (work_queue_.empty())
+			break;
+
+		// 一次性处理work队列中的所有任务
+		do
+		{
+			PendingTask task = work_queue_.front();
+			work_queue_.pop();
+			if (!task.delayed_run_time.is_null())
+			{
+				// 加入到定时任务队列
+				AddToDelayedWorkQueue(task);
+				// 如果加入的新任务是将被最先执行的，那么需要重新调度
+				if (delayed_work_queue_.top().sequence_num == task.sequence_num)
+					pump_->ScheduleDelayedWork(task.delayed_run_time);
+			}
+			else
+			{
+				if (DeferOrRunPendingTask(task))
+					return true;
+			}
+		} while (!work_queue_.empty());
+	}
+
+	return false;
 }
 
-bool MessageLoop::NestableTasksAllowed() const {
-  return nestable_tasks_allowed_;
+bool MessageLoop::DoDelayedWork(base::TimeTicks* next_delayed_work_time)
+{
+	if (!nestable_tasks_allowed_ || delayed_work_queue_.empty())
+	{
+		*next_delayed_work_time = recent_tick_ = TimeTicks();
+		return false;
+	}
+
+	// recent_tick_记录最近一次调用TimeTick::Now时的时间，
+	// 它不能代替TimeTick::Now，它是只是一个过去的Now的缓存，
+	// 用来最大限度减少对TimeTick::Now的调用。
+	// recent_tick_用来进行第一轮判断，要进行精确判断需要更新它为真正的TimeTick::Now
+
+	TimeTicks next_run_time = delayed_work_queue_.top().delayed_run_time;
+	if (next_run_time > recent_tick_)
+	{
+		// 可能是recent_tick_的不精确性引起，需要更新之
+		recent_tick_ = TimeTicks::Now();
+		if (next_run_time > recent_tick_)
+		{
+			// 真的是一个将来才需要被运行的任务，留到将来运行
+			*next_delayed_work_time = next_run_time;
+			return false;
+		}
+	}
+
+	// 这个定时任务运行时刻已到，运行之
+	PendingTask task = delayed_work_queue_.top();
+	delayed_work_queue_.pop();
+
+	if (!delayed_work_queue_.empty())
+		*next_delayed_work_time = delayed_work_queue_.top().delayed_run_time;
+
+	return DeferOrRunPendingTask(task);
 }
 
-bool MessageLoop::IsNested() {
-  return run_loop_->run_depth_ > 1;
+bool MessageLoop::ProcessNextDelayedNonNestableTask()
+{
+	// 嵌套任务？
+	if (state_->run_depth != 1)
+		return false;
+
+	if (deferred_non_nestable_work_queue_.empty())
+		return false;
+
+	PendingTask task = deferred_non_nestable_work_queue_.front();
+	deferred_non_nestable_work_queue_.pop();
+	RunTask(task);
+	return true;
 }
 
-void MessageLoop::AddTaskObserver(TaskObserver* task_observer) {
-  DCHECK_EQ(this, current());
-  task_observers_.AddObserver(task_observer);
+bool MessageLoop::DoIdleWork()
+{
+	// 进入Idle状态后，先尝试执行被缓存着的非嵌套任务
+	if (ProcessNextDelayedNonNestableTask())
+		return true;
+
+	// 检查退出标记
+	if (state_->quit_received)
+		pump_->Quit();
+
+	return false;
 }
 
-void MessageLoop::RemoveTaskObserver(TaskObserver* task_observer) {
-  DCHECK_EQ(this, current());
-  task_observers_.RemoveObserver(task_observer);
+void MessageLoop::SetNestableTasksAllowed(bool allowed)
+{
+	if (nestable_tasks_allowed_ != allowed)
+	{
+		nestable_tasks_allowed_ = allowed;
+		if (!nestable_tasks_allowed_)
+			return;
+		pump_->ScheduleWork();
+	}
 }
 
-bool MessageLoop::is_running() const {
-  DCHECK_EQ(this, current());
-  return run_loop_ != NULL;
+void MessageLoop::AddDestructionObserver(DestructionObserver *observer)
+{
+	assert(this == current());
+	destruction_observers_.AddObserver(observer);
 }
 
-bool MessageLoop::HasHighResolutionTasks() {
-  return incoming_task_queue_->HasHighResolutionTasks();
+void MessageLoop::RemoveDestructionObserver(DestructionObserver *observer)
+{
+	assert(this == current());
+	destruction_observers_.RemoveObserver(observer);
 }
 
-bool MessageLoop::IsIdleForTesting() {
-  // We only check the incoming queue, since we don't want to lock the work
-  // queue.
-  return incoming_task_queue_->IsIdleForTesting();
+void MessageLoop::AddTaskObserver(TaskObserver *observer)
+{
+	assert(this == current());
+	task_observers_.AddObserver(observer);
 }
 
-//------------------------------------------------------------------------------
-
-// static
-scoped_ptr<MessageLoop> MessageLoop::CreateUnbound(
-    Type type, MessagePumpFactoryCallback pump_factory) {
-  return make_scoped_ptr(new MessageLoop(type, pump_factory));
+void MessageLoop::RemoveTaskObserver(TaskObserver *observer)
+{
+	assert(this == current());
+	task_observers_.RemoveObserver(observer);
 }
 
-MessageLoop::MessageLoop(Type type, MessagePumpFactoryCallback pump_factory)
-    : type_(type),
+void MessageLoop::PreDestruct()
+{
+    FOR_EACH_OBSERVER(DestructionObserver, destruction_observers_, PreDestroyCurrentMessageLoop());
+}
+
+void MessageLoop::PreProcessTask()
+{
+    FOR_EACH_OBSERVER(TaskObserver, task_observers_, PreProcessTask());
+	// NOT compact the observer list, here
+}
+
+void MessageLoop::PostPrecessTask()
+{
+    FOR_EACH_OBSERVER(TaskObserver, task_observers_, PostProcessTask());
+}
+
+// the AutoRunState class
+MessageLoop::AutoRunState::AutoRunState(MessageLoop* loop) : loop_(loop)
+{
+	// Make the loop reference us.
+	previous_state_ = loop_->state_;
+	if (previous_state_) {
+		run_depth = previous_state_->run_depth + 1;
+	} else {
+		run_depth = 1;
+	}
+	loop_->state_ = this;
+
+	// Initialize the other fields:
+	quit_received = false;
 #if defined(OS_WIN)
-      pending_high_res_tasks_(0),
-      in_high_res_mode_(false),
-#endif
-      nestable_tasks_allowed_(true),
-#if defined(OS_WIN)
-      os_modal_loop_(false),
-#endif  // OS_WIN
-      pump_factory_(pump_factory),
-      message_histogram_(NULL),
-      run_loop_(NULL),
-      incoming_task_queue_(new internal::IncomingTaskQueue(this)),
-      unbound_task_runner_(
-          new internal::MessageLoopTaskRunner(incoming_task_queue_)),
-      task_runner_(unbound_task_runner_) {
-  // If type is TYPE_CUSTOM non-null pump_factory must be given.
-  DCHECK_EQ(type_ == TYPE_CUSTOM, !pump_factory_.is_null());
-}
-
-void MessageLoop::BindToCurrentThread() {
-  DCHECK(!pump_);
-  if (!pump_factory_.is_null())
-    pump_ = pump_factory_.Run();
-  else
-    pump_ = CreateMessagePumpForType(type_);
-
-  DCHECK(!current()) << "should only have one message loop per thread";
-  lazy_tls_ptr.Pointer()->Set(this);
-
-  incoming_task_queue_->StartScheduling();
-  unbound_task_runner_->BindToCurrentThread();
-  unbound_task_runner_ = nullptr;
-  SetThreadTaskRunnerHandle();
-}
-
-void MessageLoop::SetTaskRunner(
-    scoped_refptr<SingleThreadTaskRunner> task_runner) {
-  DCHECK_EQ(this, current());
-  DCHECK(task_runner->BelongsToCurrentThread());
-  DCHECK(!unbound_task_runner_);
-  task_runner_ = std::move(task_runner);
-  SetThreadTaskRunnerHandle();
-}
-
-void MessageLoop::SetThreadTaskRunnerHandle() {
-  DCHECK_EQ(this, current());
-  // Clear the previous thread task runner first, because only one can exist at
-  // a time.
-  thread_task_runner_handle_.reset();
-  thread_task_runner_handle_.reset(new ThreadTaskRunnerHandle(task_runner_));
-}
-
-void MessageLoop::RunHandler() {
-  DCHECK_EQ(this, current());
-
-  StartHistogrammer();
-
-#if defined(OS_WIN)
-  if (run_loop_->dispatcher_ && type() == TYPE_UI) {
-    static_cast<MessagePumpForUI*>(pump_.get())->
-        RunWithDispatcher(this, run_loop_->dispatcher_);
-    return;
-  }
-#endif
-
-  pump_->Run(this);
-}
-
-bool MessageLoop::ProcessNextDelayedNonNestableTask() {
-  if (run_loop_->run_depth_ != 1)
-    return false;
-
-  if (deferred_non_nestable_work_queue_.empty())
-    return false;
-
-  PendingTask pending_task = deferred_non_nestable_work_queue_.front();
-  deferred_non_nestable_work_queue_.pop();
-
-  RunTask(pending_task);
-  return true;
-}
-
-void MessageLoop::RunTask(const PendingTask& pending_task) {
-  DCHECK(nestable_tasks_allowed_);
-
-#if defined(OS_WIN)
-  if (pending_task.is_high_res) {
-    pending_high_res_tasks_--;
-    CHECK_GE(pending_high_res_tasks_, 0);
-  }
-#endif
-
-  // Execute the task and assume the worst: It is probably not reentrant.
-  nestable_tasks_allowed_ = false;
-
-  // HistogramEvent(kTaskRunEvent);
-
-  // TRACE_TASK_EXECUTION("MessageLoop::RunTask", pending_task);
-
-  FOR_EACH_OBSERVER(TaskObserver, task_observers_,
-                    WillProcessTask(pending_task));
-  task_annotator_.RunTask("MessageLoop::PostTask", pending_task);
-  FOR_EACH_OBSERVER(TaskObserver, task_observers_,
-                    DidProcessTask(pending_task));
-
-  nestable_tasks_allowed_ = true;
-}
-
-bool MessageLoop::DeferOrRunPendingTask(const PendingTask& pending_task) {
-  if (pending_task.nestable || run_loop_->run_depth_ == 1) {
-    RunTask(pending_task);
-    // Show that we ran a task (Note: a new one might arrive as a
-    // consequence!).
-    return true;
-  }
-
-  // We couldn't run the task now because we're in a nested message loop
-  // and the task isn't nestable.
-  deferred_non_nestable_work_queue_.push(pending_task);
-  return false;
-}
-
-void MessageLoop::AddToDelayedWorkQueue(const PendingTask& pending_task) {
-  // Move to the delayed work queue.
-  delayed_work_queue_.push(pending_task);
-}
-
-bool MessageLoop::DeletePendingTasks() {
-  bool did_work = !work_queue_.empty();
-  while (!work_queue_.empty()) {
-    PendingTask pending_task = work_queue_.front();
-    work_queue_.pop();
-    if (!pending_task.delayed_run_time.is_null()) {
-      // We want to delete delayed tasks in the same order in which they would
-      // normally be deleted in case of any funny dependencies between delayed
-      // tasks.
-      AddToDelayedWorkQueue(pending_task);
-    }
-  }
-  did_work |= !deferred_non_nestable_work_queue_.empty();
-  while (!deferred_non_nestable_work_queue_.empty()) {
-    deferred_non_nestable_work_queue_.pop();
-  }
-  did_work |= !delayed_work_queue_.empty();
-
-  // Historically, we always delete the task regardless of valgrind status. It's
-  // not completely clear why we want to leak them in the loops above.  This
-  // code is replicating legacy behavior, and should not be considered
-  // absolutely "correct" behavior.  See TODO above about deleting all tasks
-  // when it's safe.
-  while (!delayed_work_queue_.empty()) {
-    delayed_work_queue_.pop();
-  }
-  return did_work;
-}
-
-void MessageLoop::ReloadWorkQueue() {
-  // We can improve performance of our loading tasks from the incoming queue to
-  // |*work_queue| by waiting until the last minute (|*work_queue| is empty) to
-  // load. That reduces the number of locks-per-task significantly when our
-  // queues get large.
-  if (work_queue_.empty()) {
-#if defined(OS_WIN)
-    pending_high_res_tasks_ +=
-        incoming_task_queue_->ReloadWorkQueue(&work_queue_);
-#else
-    incoming_task_queue_->ReloadWorkQueue(&work_queue_);
-#endif
-  }
-}
-
-void MessageLoop::ScheduleWork() {
-  pump_->ScheduleWork();
-}
-
-//------------------------------------------------------------------------------
-// Method and data for histogramming events and actions taken by each instance
-// on each thread.
-
-void MessageLoop::StartHistogrammer() {
-#if !defined(OS_NACL)  // NaCl build has no metrics code.
-  // if (enable_histogrammer_ && !message_histogram_
-  //     && StatisticsRecorder::IsActive()) {
-  //   DCHECK(!thread_name_.empty());
-  //   message_histogram_ = LinearHistogram::FactoryGetWithRangeDescription(
-  //       "MsgLoop:" + thread_name_,
-  //       kLeastNonZeroMessageId, kMaxMessageId,
-  //       kNumberOfDistinctMessagesDisplayed,
-  //       HistogramBase::kHexRangePrintingFlag,
-  //       event_descriptions_);
-  // }
+	dispatcher = NULL;
 #endif
 }
 
-void MessageLoop::HistogramEvent(int event) {
-#if !defined(OS_NACL)
-  // if (message_histogram_)
-  //   message_histogram_->Add(event);
-#endif
+MessageLoop::AutoRunState::~AutoRunState()
+{
+	loop_->state_ = previous_state_;
 }
 
-bool MessageLoop::DoWork() {
-  if (!nestable_tasks_allowed_) {
-    // Task can't be executed right now.
-    return false;
-  }
+MessageLoop::PendingTask::PendingTask(const StdClosure &task)
+	: std_task(task), nestable(true), sequence_num(0)
+{
 
-  for (;;) {
-    ReloadWorkQueue();
-    if (work_queue_.empty())
-      break;
-
-    // Execute oldest task.
-    do {
-      PendingTask pending_task = work_queue_.front();
-      work_queue_.pop();
-      if (!pending_task.delayed_run_time.is_null()) {
-        AddToDelayedWorkQueue(pending_task);
-        // If we changed the topmost task, then it is time to reschedule.
-        if (delayed_work_queue_.top().task.Equals(pending_task.task))
-          pump_->ScheduleDelayedWork(pending_task.delayed_run_time);
-      } else {
-        if (DeferOrRunPendingTask(pending_task))
-          return true;
-      }
-    } while (!work_queue_.empty());
-  }
-
-  // Nothing happened.
-  return false;
 }
 
-bool MessageLoop::DoDelayedWork(TimeTicks* next_delayed_work_time) {
-  if (!nestable_tasks_allowed_ || delayed_work_queue_.empty()) {
-    recent_time_ = *next_delayed_work_time = TimeTicks();
-    return false;
-  }
+MessageLoop::PendingTask::PendingTask(const StdClosure &task, TimeTicks delayed_run_time, bool nestable) :
+	std_task(task), delayed_run_time(delayed_run_time),
+	nestable(nestable), sequence_num(0)
+{
 
-  // When we "fall behind", there will be a lot of tasks in the delayed work
-  // queue that are ready to run.  To increase efficiency when we fall behind,
-  // we will only call Time::Now() intermittently, and then process all tasks
-  // that are ready to run before calling it again.  As a result, the more we
-  // fall behind (and have a lot of ready-to-run delayed tasks), the more
-  // efficient we'll be at handling the tasks.
-
-  TimeTicks next_run_time = delayed_work_queue_.top().delayed_run_time;
-  if (next_run_time > recent_time_) {
-    recent_time_ = TimeTicks::Now();  // Get a better view of Now();
-    if (next_run_time > recent_time_) {
-      *next_delayed_work_time = next_run_time;
-      return false;
-    }
-  }
-
-  PendingTask pending_task = delayed_work_queue_.top();
-  delayed_work_queue_.pop();
-
-  if (!delayed_work_queue_.empty())
-    *next_delayed_work_time = delayed_work_queue_.top().delayed_run_time;
-
-  return DeferOrRunPendingTask(pending_task);
 }
 
-bool MessageLoop::DoIdleWork() {
-  if (ProcessNextDelayedNonNestableTask())
-    return true;
+MessageLoop::PendingTask::~PendingTask()
+{
 
-  if (run_loop_->quit_when_idle_received_)
-    pump_->Quit();
-
-  // When we return we will do a kernel wait for more tasks.
-#if defined(OS_WIN)
-  // On Windows we activate the high resolution timer so that the wait
-  // _if_ triggered by the timer happens with good resolution. If we don't
-  // do this the default resolution is 15ms which might not be acceptable
-  // for some tasks.
-  bool high_res = pending_high_res_tasks_ > 0;
-  if (high_res != in_high_res_mode_) {
-    in_high_res_mode_ = high_res;
-    Time::ActivateHighResolutionTimer(in_high_res_mode_);
-  }
-#endif
-  return false;
 }
 
-void MessageLoop::DeleteSoonInternal(const tracked_objects::Location& from_here,
-                                     void(*deleter)(const void*),
-                                     const void* object) {
-  PostNonNestableTask(from_here, Bind(deleter, object));
-}
-
-void MessageLoop::ReleaseSoonInternal(
-    const tracked_objects::Location& from_here,
-    void(*releaser)(const void*),
-    const void* object) {
-  PostNonNestableTask(from_here, Bind(releaser, object));
-}
-
-#if !defined(OS_NACL)
-//------------------------------------------------------------------------------
-// MessageLoopForUI
-
-#if defined(OS_ANDROID)
-void MessageLoopForUI::Start() {
-  // No Histogram support for UI message loop as it is managed by Java side
-  static_cast<MessagePumpForUI*>(pump_.get())->Start(this);
-}
-#endif
-
-#if defined(OS_IOS)
-void MessageLoopForUI::Attach() {
-  static_cast<MessagePumpUIApplication*>(pump_.get())->Attach(this);
-}
-#endif
-
-#if defined(USE_OZONE) || (defined(USE_X11) && !defined(USE_GLIB))
-bool MessageLoopForUI::WatchFileDescriptor(
-    int fd,
-    bool persistent,
-    MessagePumpLibevent::Mode mode,
-    MessagePumpLibevent::FileDescriptorWatcher *controller,
-    MessagePumpLibevent::Watcher *delegate) {
-  return static_cast<MessagePumpLibevent*>(pump_.get())->WatchFileDescriptor(
-      fd,
-      persistent,
-      mode,
-      controller,
-      delegate);
-}
-#endif
-
-#endif  // !defined(OS_NACL)
-
-//------------------------------------------------------------------------------
-// MessageLoopForIO
-
-#if !defined(OS_NACL_SFI)
-void MessageLoopForIO::AddIOObserver(
-    MessageLoopForIO::IOObserver* io_observer) {
-  ToPumpIO(pump_.get())->AddIOObserver(io_observer);
-}
-
-void MessageLoopForIO::RemoveIOObserver(
-    MessageLoopForIO::IOObserver* io_observer) {
-  ToPumpIO(pump_.get())->RemoveIOObserver(io_observer);
+bool MessageLoop::PendingTask::operator<(const MessageLoop::PendingTask& other) const
+{
+	if (delayed_run_time > other.delayed_run_time)
+		return true;
+	if (delayed_run_time < other.delayed_run_time)
+		return false;
+	return sequence_num > other.sequence_num;
 }
 
 #if defined(OS_WIN)
-void MessageLoopForIO::RegisterIOHandler(HANDLE file, IOHandler* handler) {
-  ToPumpIO(pump_.get())->RegisterIOHandler(file, handler);
+
+// the UIMessageLoop class
+UIMessageLoop::UIMessageLoop()
+{
+	pump_.reset(new UIMessagePump);
+	type_ = kUIMessageLoop;
 }
 
-bool MessageLoopForIO::RegisterJobObject(HANDLE job, IOHandler* handler) {
-  return ToPumpIO(pump_.get())->RegisterJobObject(job, handler);
+void UIMessageLoop::AddUIObserver(UIObserver* observer)
+{
+	assert(this == current());
+	static_cast<UIMessagePump *>(pump())->AddObserver(observer);
 }
 
-bool MessageLoopForIO::WaitForIOCompletion(DWORD timeout, IOHandler* filter) {
-  return ToPumpIO(pump_.get())->WaitForIOCompletion(timeout, filter);
+void UIMessageLoop::RemoveUIObserver(UIObserver *observer)
+{
+	assert(this == current());
+	static_cast<UIMessagePump *>(pump())->RemoveObserver(observer);
 }
-#elif defined(OS_POSIX)
-bool MessageLoopForIO::WatchFileDescriptor(int fd,
-                                           bool persistent,
-                                           Mode mode,
-                                           FileDescriptorWatcher* controller,
-                                           Watcher* delegate) {
-  return ToPumpIO(pump_.get())->WatchFileDescriptor(
-      fd,
-      persistent,
-      mode,
-      controller,
-      delegate);
-}
-#endif
+	
+#endif // OS_WIN
 
-#endif  // !defined(OS_NACL_SFI)
-
-}  // namespace base
+} // namespace base

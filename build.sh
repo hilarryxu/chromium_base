@@ -1,2 +1,6 @@
+#!/bin/sh
+
+BUILD_TYPE=${BUILD_TYPE:-release}
+
 premake5 gmake
-make config=release
+make config=$BUILD_TYPE

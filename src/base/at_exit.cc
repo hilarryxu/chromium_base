@@ -69,7 +69,7 @@ void AtExitManager::ProcessCallbacksNow() {
 
   while (!g_top_manager->stack_.empty()) {
     base::Closure task = g_top_manager->stack_.top();
-    task.Run();
+    task();
     g_top_manager->stack_.pop();
   }
 }

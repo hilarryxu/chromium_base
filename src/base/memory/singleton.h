@@ -27,6 +27,17 @@
 #include "base/threading/thread_restrictions.h"
 
 namespace base {
+
+#define SINGLETON_DEFINE(TypeName)        \
+static TypeName* GetInstance()          \
+{                       \
+  static TypeName type_instance;        \
+  return &type_instance;            \
+}                       \
+                        \
+TypeName(const TypeName&) = delete;       \
+TypeName& operator=(const TypeName&) = delete
+
 namespace internal {
 
 // Our AtomicWord doubles as a spinlock, where a value of

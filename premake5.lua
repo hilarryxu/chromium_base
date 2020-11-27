@@ -15,16 +15,14 @@ workspace "sln-chromium_base"
     kind "StaticLib"
     language "C++"
     targetdir "builddir"
-    files { "src/base/**.cc", "src/net/**.cc" }
+    files { "src/base/**.cc" }
     removefiles { "src/base/third_party/dmg_fp/dtoa.cc" }
     removefiles {
       "src/base/**_win.cc",
       "src/base/win/**.cc",
       "src/base/**_posix.cc",
       "src/base/posix/**.cc",
-      "src/base/**_linux.cc",
-      "src/net/**_win.cc",
-      "src/net/**_posix.cc"
+      "src/base/**_linux.cc"
     }
 
     includedirs { "src" }
@@ -41,8 +39,7 @@ workspace "sln-chromium_base"
     filter { "system:windows", "toolset:gcc" }
       files {
         "src/base/**_win.cc",
-        "src/base/win/**.cc",
-        "src/net/**_win.cc"
+        "src/base/win/**.cc"
       }
       defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
       buildoptions { "-std=c++14", "-fno-rtti" }
@@ -51,14 +48,7 @@ workspace "sln-chromium_base"
       files {
         "src/base/**_posix.cc",
         "src/base/posix/**.cc",
-        "src/base/**_linux.cc",
-        "src/net/**_posix.cc"
-      }
-      removefiles {
-        "src/base/message_loop/**",
-        "src/base/threading/thread.cc",
-        "src/base/run_loop.cc",
-        "src/base/synchronization/waitable_event_watcher_posix.cc"
+        "src/base/**_linux.cc"
       }
       defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti" }

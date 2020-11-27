@@ -6,7 +6,8 @@
 // A implemetation of a cross flatform waitable event based message loop
 
 #include "base/message_loop/default_message_pump.h"
-#include <cassert>
+
+#include "base/logging.h"
 
 namespace base {
 
@@ -15,7 +16,7 @@ DefaultMessagePump::DefaultMessagePump()
 
 void DefaultMessagePump::Run(Delegate* delegate) {
   // Quit must have been called outside of Run!
-  assert(should_quit_ == false);
+  DCHECK(should_quit_ == false);
 
   for (;;) {
     bool did_work = delegate->DoWork();

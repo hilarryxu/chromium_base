@@ -4,9 +4,10 @@
 #ifndef BASE_FRAMEWORK_WIN_UI_MESSAGE_PUMP_H_
 #define BASE_FRAMEWORK_WIN_UI_MESSAGE_PUMP_H_
 
-#include "base/message_loop/message_pump_win.h"
-
 #include <list>
+
+#include "base/base_export.h"
+#include "base/message_loop/message_pump_win.h"
 #include "base/observer_list.h"
 
 namespace base {

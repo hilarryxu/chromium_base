@@ -7,14 +7,15 @@
 
 #include "base/message_loop/message_pump_win.h"
 
-#include <assert.h>
 #include <math.h>
+
+#include "base/logging.h"
 
 namespace base {
 
 void WinMessagePump::RunWithDispatcher(Delegate* delegate,
                                        Dispatcher* dispatcher) {
-  assert(delegate);
+  DCHECK(delegate);
 
   RunState rs;
   rs.delegate = delegate;
@@ -31,7 +32,8 @@ void WinMessagePump::RunWithDispatcher(Delegate* delegate,
 }
 
 void WinMessagePump::Quit() {
-  assert(state_);
+  DCHECK(state_);
+
   if (state_)
     state_->should_quit = true;
 }
@@ -40,7 +42,7 @@ int64_t WinMessagePump::GetCurrentDelay() const {
   if (delayed_work_time_.is_null())
     return -1;
 
-  // 将微妙的精度转换为毫秒
+  // 将微秒us的精度转换为毫秒ms
   double timeout =
       ceil((delayed_work_time_ - TimeTicks::Now()).ToInternalValue() / 1000.0);
 

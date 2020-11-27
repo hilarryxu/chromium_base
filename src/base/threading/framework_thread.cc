@@ -8,7 +8,10 @@
 // Thread with framework(message loop)
 
 #include "base/threading/framework_thread.h"
+
+#include "base/logging.h"
 #include "base/lazy_instance.h"
+#include "base/callback.h"
 
 namespace base {
 
@@ -23,7 +26,7 @@ FrameworkThread::FrameworkThread(const char* name)
     : started_(false),
       stopping_(false),
       loop_type_(MessageLoop::kDefaultMessageLoop),
-      message_loop_(NULL),
+      message_loop_(nullptr),
       event_(false, false),
       name_(name),
       thread_(0),
@@ -44,7 +47,7 @@ bool FrameworkThread::StartWithLoop(const MessageLoop::Type type,
 bool FrameworkThread::StartWithLoop(const MessageLoop::Type type)
 #endif
 {
-  if (message_loop_ != NULL)
+  if (message_loop_ != nullptr)
     return false;
 
   loop_type_ = type;
@@ -69,7 +72,7 @@ bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory* factory,
 bool FrameworkThread::StartWithLoop(CustomMessageLoopFactory* factory)
 #endif
 {
-  if (factory == NULL)
+  if (factory == nullptr)
     return false;
 
   factory_.reset(factory);
@@ -99,7 +102,7 @@ bool FrameworkThread::Create() {
   {
     AutoLock lock(thread_lock_);
     if (!PlatformThread::Create(0, this, &thread_)) {
-      // DLOG(ERROR) << "failed to create thread";
+      DLOG(ERROR) << "failed to create thread";
       return false;
     }
   }
@@ -138,7 +141,7 @@ void FrameworkThread::Stop() {
   thread_ = base::PlatformThreadHandle();
 
   // The thread should nullify message_loop_ on exit.
-  // DCHECK(!message_loop_);
+  DCHECK(!message_loop_);
 
   started_ = false;
   stopping_ = false;
@@ -201,7 +204,7 @@ void FrameworkThread::ThreadMain() {
     // Let the thread do extra cleanup.
     Cleanup();
 
-    // DCHECK(GetThreadWasQuitProperly());
+    DCHECK(GetThreadWasQuitProperly());
 
     // We can't receive messages anymore.
     if (loop_type_ != MessageLoop::kCustomMessageLoop)
@@ -210,14 +213,15 @@ void FrameworkThread::ThreadMain() {
       delete message_loop_;
       factory_.reset();
     }
-    message_loop_ = NULL;
+    message_loop_ = nullptr;
   }
   id_ = kInvalidThreadId;
   {
     FrameworkThreadTlsData* tls = GetTlsData();
-    if (tls != NULL) {
+    if (tls != nullptr) {
     }
-    // DCHECK(tls->managed == 0); // you must call
+    DCHECK(tls->managed == 0);
+    // you must call
     // ThreadManager::UnregisterThread before come there
   }
   FreeTlsData();
@@ -225,24 +229,24 @@ void FrameworkThread::ThreadMain() {
 
 void FrameworkThread::InitTlsData(FrameworkThread* self) {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls == NULL);
-  if (tls != NULL)
+  DCHECK(tls == nullptr);
+  if (tls != nullptr)
     return;
   tls = new FrameworkThreadTlsData;
   tls->self = self;
   tls->managed = 0;
   tls->managed_thread_id = -1;
   tls->quit_properly = false;
-  tls->custom_data = NULL;
+  tls->custom_data = nullptr;
   lazy_tls_data.Pointer()->Set(tls);
 }
 
 void FrameworkThread::FreeTlsData() {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
     return;
-  lazy_tls_data.Pointer()->Set(NULL);
+  lazy_tls_data.Pointer()->Set(nullptr);
   delete tls;
 }
 
@@ -252,48 +256,48 @@ FrameworkThreadTlsData* FrameworkThread::GetTlsData() {
 
 bool FrameworkThread::GetThreadWasQuitProperly() {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
     return false;
   return tls->quit_properly;
 }
 
 void FrameworkThread::SetThreadWasQuitProperly(bool flag) {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
     return;
   tls->quit_properly = flag;
 }
 
 FrameworkThread* FrameworkThread::current() {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
-    return NULL;
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
+    return nullptr;
   return tls->self;
 }
 
 int FrameworkThread::GetManagedThreadId() {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
     return -1;
   return tls->managed_thread_id;
 }
 
 void* FrameworkThread::GetCustomTlsData() {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
-    return NULL;
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
+    return nullptr;
   return tls->custom_data;
 }
 
 void FrameworkThread::SetCustomTlsData(void* data) {
   FrameworkThreadTlsData* tls = GetTlsData();
-  // DCHECK(tls != NULL);
-  if (tls == NULL)
+  DCHECK(tls != nullptr);
+  if (tls == nullptr)
     return;
   tls->custom_data = data;
 }

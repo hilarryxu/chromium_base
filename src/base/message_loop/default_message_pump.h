@@ -3,9 +3,10 @@
 #ifndef BASE_FRAMEWORK_DEFAULT_MESSAGE_PUMP_H_
 #define BASE_FRAMEWORK_DEFAULT_MESSAGE_PUMP_H_
 
-#include "base/message_loop/message_pump.h"
+#include "base/macros.h"
 #include "base/time/time.h"
 #include "base/synchronization/waitable_event.h"
+#include "base/message_loop/message_pump.h"
 
 namespace base {
 

@@ -8,7 +8,7 @@
 
 #include "base/message_loop/message_loop.h"
 
-#include <assert.h>
+#include "base/logging.h"
 #include "base/lazy_instance.h"
 #include "base/threading/thread_local.h"
 
@@ -18,14 +18,14 @@ LazyInstance<ThreadLocalPointer<MessageLoop> > g_lazy_ptr;
 
 MessageLoop::MessageLoop()
     : type_(kDefaultMessageLoop),
-      state_(NULL),
+      state_(nullptr),
 #if defined(OS_WIN)
       os_modal_loop_(false),
 #endif  // OS_WIN
       nestable_tasks_allowed_(true),
       next_delayed_task_sequence_num_(0) {
   // 一个线程内不能存在两个或以上MessageLoop
-  assert(g_lazy_ptr.Pointer()->Get() == NULL);
+  DCHECK(g_lazy_ptr.Pointer()->Get() == nullptr);
   // 默认消息循环
   if (type_ == kDefaultMessageLoop)
     pump_.reset(new DefaultMessagePump);
@@ -49,14 +49,14 @@ MessageLoop::~MessageLoop() {
       break;
   }
 
-  assert(!has_work);
+  DCHECK(!has_work);
 
   PreDestruct();
 
   message_loop_proxy_->WillDestroyCurrentMessageLoop();
   message_loop_proxy_ = nullptr;
 
-  g_lazy_ptr.Pointer()->Set(NULL);
+  g_lazy_ptr.Pointer()->Set(nullptr);
 }
 
 MessageLoop* MessageLoop::current() {
@@ -68,17 +68,17 @@ MessageLoop* MessageLoop::current() {
 UIMessageLoop* MessageLoop::ToUIMessageLoop() {
   if (type_ == kUIMessageLoop)
     return reinterpret_cast<UIMessageLoop*>(this);
-  return NULL;
+  return nullptr;
 }
 
 IOMessageLoop* MessageLoop::ToIOMessageLoop() {
   if (type_ == kIOMessageLoop)
     return reinterpret_cast<IOMessageLoop*>(this);
-  return NULL;
+  return nullptr;
 }
 
 void MessageLoop::RunWithDispatcher(Dispatcher* dispatcher) {
-  assert(this == current());
+  DCHECK(this == current());
   AutoRunState state(this);
   state_->dispatcher = dispatcher;
   RunInternal();
@@ -89,26 +89,26 @@ void MessageLoop::RunWithDispatcher(Dispatcher* dispatcher) {
 IOMessageLoop* MessageLoop::ToIOMessageLoop() {
   if (type_ == kIOMessageLoop)
     return reinterpret_cast<IOMessageLoop*>(this);
-  return NULL;
+  return nullptr;
 }
 
 #endif  // OS_WIN
 
 void MessageLoop::Run() {
-  assert(this == current());
+  DCHECK(this == current());
   AutoRunState state(this);
   RunInternal();
 }
 
 void MessageLoop::RunAllPending() {
-  assert(this == current());
+  DCHECK(this == current());
   AutoRunState state(this);
   state_->quit_received = true;  // Means run until we would otherwise block.
   RunInternal();
 }
 
 void MessageLoop::RunInternal() {
-  assert(this == current());
+  DCHECK(this == current());
 
 #if defined(OS_WIN)
   if (state_->dispatcher && type() == kUIMessageLoop) {
@@ -211,7 +211,6 @@ void MessageLoop::ReloadWorkQueue() {
     AutoLock lock(incoming_queue_lock_);
     if (incoming_queue_.empty())
       return;
-    // 常数时间交换内存
     work_queue_.Swap(&incoming_queue_);
   }
 }
@@ -228,11 +227,10 @@ bool MessageLoop::DeferOrRunPendingTask(const PendingTask& task) {
 }
 
 void MessageLoop::RunTask(const PendingTask& task) {
-  assert(nestable_tasks_allowed_);
+  DCHECK(nestable_tasks_allowed_);
 
   // 考虑到最坏情况下，任务可能是不可重入的，
   // 所以暂时禁用嵌套任务
-
   nestable_tasks_allowed_ = false;
   PendingTask pending_task = task;
   PreProcessTask();
@@ -340,22 +338,22 @@ void MessageLoop::SetNestableTasksAllowed(bool allowed) {
 }
 
 void MessageLoop::AddDestructionObserver(DestructionObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   destruction_observers_.AddObserver(observer);
 }
 
 void MessageLoop::RemoveDestructionObserver(DestructionObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   destruction_observers_.RemoveObserver(observer);
 }
 
 void MessageLoop::AddTaskObserver(TaskObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   task_observers_.AddObserver(observer);
 }
 
 void MessageLoop::RemoveTaskObserver(TaskObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   task_observers_.RemoveObserver(observer);
 }
 
@@ -366,7 +364,6 @@ void MessageLoop::PreDestruct() {
 
 void MessageLoop::PreProcessTask() {
   FOR_EACH_OBSERVER(TaskObserver, task_observers_, PreProcessTask());
-  // NOT compact the observer list, here
 }
 
 void MessageLoop::PostPrecessTask() {
@@ -387,7 +384,7 @@ MessageLoop::AutoRunState::AutoRunState(MessageLoop* loop) : loop_(loop) {
   // Initialize the other fields:
   quit_received = false;
 #if defined(OS_WIN)
-  dispatcher = NULL;
+  dispatcher = nullptr;
 #endif
 }
 
@@ -426,12 +423,12 @@ UIMessageLoop::UIMessageLoop() {
 }
 
 void UIMessageLoop::AddUIObserver(UIObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   static_cast<UIMessagePump*>(pump())->AddObserver(observer);
 }
 
 void UIMessageLoop::RemoveUIObserver(UIObserver* observer) {
-  assert(this == current());
+  DCHECK(this == current());
   static_cast<UIMessagePump*>(pump())->RemoveObserver(observer);
 }
 

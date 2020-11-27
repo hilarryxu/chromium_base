@@ -17,6 +17,7 @@ class MessageLoopProxy;
 class ThreadMap {
  public:
   SINGLETON_DEFINE(ThreadMap);
+
   static bool AquireAccess();
 
   bool RegisterThread(int self_identifier);
@@ -69,8 +70,7 @@ class BASE_EXPORT ThreadManager {
   static bool PostNonNestableTask(const Closure& task);
   static bool PostNonNestableTask(int identifier, const Closure& task);
 
-  static bool PostNonNestableDelayedTask(const Closure& task,
-                                         TimeDelta delay);
+  static bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay);
   static bool PostNonNestableDelayedTask(int identifier,
                                          const Closure& task,
                                          TimeDelta delay);

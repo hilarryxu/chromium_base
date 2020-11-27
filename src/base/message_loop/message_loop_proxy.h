@@ -57,6 +57,7 @@ class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
 
   // Called directly by MessageLoop::~MessageLoop.
   virtual void WillDestroyCurrentMessageLoop();
+
   // Called when the reference decreased to 0
   virtual void OnDestruct() const;
 

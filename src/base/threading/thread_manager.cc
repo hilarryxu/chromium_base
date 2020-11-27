@@ -6,15 +6,18 @@
 // a thread manager for iner-thread communicatios, etc.
 
 #include "base/threading/thread_manager.h"
+
+#include "base/logging.h"
 #include "base/message_loop/message_loop.h"
 #include "base/memory/singleton.h"
 
 #define AUTO_MAP_LOCK() AutoLock __l(GetInstance()->lock_);
-#define AQUIRE_ACCESS()                       \
-  {                                           \
-    if (!AquireAccess()) { /*DCHECK(false);*/ \
-      return false;                           \
-    }                                         \
+#define AQUIRE_ACCESS()    \
+  {                        \
+    if (!AquireAccess()) { \
+      DCHECK(false);       \
+      return false;        \
+    }                      \
   }
 
 namespace base {
@@ -27,13 +30,13 @@ bool ThreadMap::AquireAccess() {
 }
 
 bool ThreadMap::RegisterThread(int self_identifier) {
-  // DCHECK(self_identifier >= 0);
+  DCHECK(self_identifier >= 0);
   if (self_identifier < 0)
     return false;
 
   FrameworkThreadTlsData* tls = FrameworkThread::GetTlsData();
-  // DCHECK(tls); // should be called by a Framework thread
-  if (tls == NULL)
+  DCHECK(tls);  // should be called by a Framework thread
+  if (tls == nullptr)
     return false;
 
   AUTO_MAP_LOCK()
@@ -42,12 +45,12 @@ bool ThreadMap::RegisterThread(int self_identifier) {
           std::make_pair(self_identifier, tls->self));
   if (!pr.second) {
     if (pr.first->second != tls->self) {
-      // DCHECK(false); // another thread has registered with the same id
+      DCHECK(false);  // another thread has registered with the same id
       return false;
     }
     // yes, it's me, check logic error
-    // DCHECK(tls->managed > 0);
-    // DCHECK(tls->managed_thread_id == self_identifier);
+    DCHECK(tls->managed > 0);
+    DCHECK(tls->managed_thread_id == self_identifier);
   }
   // 'self' is registered
   tls->managed++;
@@ -57,8 +60,8 @@ bool ThreadMap::RegisterThread(int self_identifier) {
 
 bool ThreadMap::UnregisterThread() {
   FrameworkThreadTlsData* tls = FrameworkThread::GetTlsData();
-  // DCHECK(tls); // should be called by a Framework thread
-  // DCHECK(tls->managed > 0); // should be managed
+  DCHECK(tls);               // should be called by a Framework thread
+  DCHECK(tls->managed > 0);  // should be managed
   if (!tls || tls->managed < 1)
     return false;
 
@@ -74,7 +77,7 @@ bool ThreadMap::UnregisterThread() {
       GetInstance()->threads_.erase(iter);
     else {
     }
-    // DCHECK(false);	// logic error, we should not come here
+    // FIXME(xcc); ? DCHECK(false);	// logic error, we should not come here
     tls->managed_thread_id = -1;
   }
 
@@ -86,13 +89,14 @@ FrameworkThread* ThreadMap::QueryThreadInternal(int identifier) const {
   std::map<int, FrameworkThread*>::iterator iter =
       GetInstance()->threads_.find(identifier);
   if (iter == GetInstance()->threads_.end())
-    return NULL;
+    return nullptr;
   return iter->second;
 }
 
 int ThreadMap::QueryThreadId(const FrameworkThread* thread) {
   AQUIRE_ACCESS()
   AUTO_MAP_LOCK()
+
   std::map<int, FrameworkThread*>::iterator iter;
   for (iter = GetInstance()->threads_.begin();
        iter != GetInstance()->threads_.end(); iter++) {
@@ -105,11 +109,11 @@ int ThreadMap::QueryThreadId(const FrameworkThread* thread) {
 std::shared_ptr<MessageLoopProxy> ThreadMap::GetMessageLoop(
     int identifier) const {
   FrameworkThread* thread = QueryThreadInternal(identifier);
-  if (thread == NULL)
-    return NULL;
+  if (thread == nullptr)
+    return nullptr;
   MessageLoop* message_loop = thread->message_loop();
-  if (message_loop == NULL)
-    return NULL;
+  if (message_loop == nullptr)
+    return nullptr;
   return message_loop->message_loop_proxy();
 }
 
@@ -127,11 +131,11 @@ int ThreadManager::QueryThreadId(const FrameworkThread* thread) {
 
 FrameworkThread* ThreadManager::CurrentThread() {
   FrameworkThreadTlsData* tls = FrameworkThread::GetTlsData();
-  // DCHECK(tls); // should be called by a Framework thread
-  // DCHECK(tls->managed > 0); // should be managed
+  DCHECK(tls);               // should be called by a Framework thread
+  DCHECK(tls->managed > 0);  // should be managed
 
   if (!tls || tls->managed < 1)
-    return NULL;
+    return nullptr;
   return tls->self;
 }
 
@@ -143,7 +147,7 @@ bool ThreadManager::PostTask(const Closure& task) {
 bool ThreadManager::PostTask(int identifier, const Closure& task) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
-  if (message_loop == NULL)
+  if (message_loop == nullptr)
     return false;
   message_loop->PostTask(task);
   return true;
@@ -159,7 +163,7 @@ bool ThreadManager::PostDelayedTask(int identifier,
                                     TimeDelta delay) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
-  if (message_loop == NULL)
+  if (message_loop == nullptr)
     return false;
   message_loop->PostDelayedTask(task, delay);
   return true;
@@ -187,11 +191,10 @@ bool ThreadManager::PostNonNestableTask(const Closure& task) {
   return true;
 }
 
-bool ThreadManager::PostNonNestableTask(int identifier,
-                                        const Closure& task) {
+bool ThreadManager::PostNonNestableTask(int identifier, const Closure& task) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
-  if (message_loop == NULL)
+  if (message_loop == nullptr)
     return false;
   message_loop->PostNonNestableTask(task);
   return true;
@@ -208,7 +211,7 @@ bool ThreadManager::PostNonNestableDelayedTask(int identifier,
                                                TimeDelta delay) {
   std::shared_ptr<MessageLoopProxy> message_loop =
       ThreadMap::GetInstance()->GetMessageLoop(identifier);
-  if (message_loop == NULL)
+  if (message_loop == nullptr)
     return false;
   message_loop->PostNonNestableDelayedTask(task, delay);
   return true;

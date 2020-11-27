@@ -9,16 +9,16 @@
 
 #include "base/base_export.h"
 #include "build/build_config.h"
+#include "base/macros.h"
 #include "base/message_loop/default_message_pump.h"
 #include "base/message_loop/message_loop_proxy.h"  // for MessageLoopProxy
 #include "base/observer_list.h"                    // for ObserverList
 #if defined(OS_WIN)
-// #include "base/message_loop/io_message_pump_win.h"
 #include "base/message_loop/ui_message_pump_win.h"
 #elif defined(OS_POSIX)
-#include "base/message_loop/libevent_message_pump.h"
-#endif                                  // OS_WIN
-#include "base/synchronization/lock.h"  // for NLock
+// #include "base/message_loop/libevent_message_pump.h"
+#endif  // OS_WIN
+#include "base/synchronization/lock.h"
 #include "base/time/time.h"
 #include "base/callback.h"
 
@@ -34,7 +34,7 @@ namespace base {
 
 class UIMessageLoop;
 class IOMessageLoop;
-class UvMessageLoop;
+// class UvMessageLoop;
 class MessageLoopProxy;
 
 #if defined(OS_WIN)
@@ -42,7 +42,7 @@ class MessageLoopProxy;
 typedef WinUIMessagePump UIMessagePump;
 typedef WinMessagePump::Dispatcher Dispatcher;
 #elif defined(OS_POSIX)
-typedef LibeventMessagePump IOMessagePump;
+// typedef LibeventMessagePump IOMessagePump;
 #else
 #error Not support currently!
 #endif
@@ -62,7 +62,7 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
 
 #if defined(OS_WIN)
   // 转换成对应派生类型的MessageLoop指针
-  // 如果原指针非对应类型的指针，将返回NULL
+  // 如果原指针非对应类型的指针，将返回 nullptr
   UIMessageLoop* ToUIMessageLoop();
   IOMessageLoop* ToIOMessageLoop();
 #elif defined(OS_POSIX)

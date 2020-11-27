@@ -9,11 +9,12 @@
 #include "base/message_loop/ui_message_pump_win.h"
 
 #include <algorithm>
+
 #include "base/message_loop/message_loop.h"
 
 namespace base {
 
-static const wchar_t kWndClass[] = L"NeteaseMessagePumpWindow";
+static const wchar_t kWndClass[] = L"NbaseMessagePumpWindow";
 static const unsigned int kMsgHaveWork = WM_USER + 1;
 static const int kUserTimerMinmum = 10;
 
@@ -28,7 +29,7 @@ WinUIMessagePump::~WinUIMessagePump() {
 
 void WinUIMessagePump::ScheduleWork() {
   if (::InterlockedExchange(&have_work_, 1))
-    return;  // Pump已经开始
+    return;
 
   // 通知MessagePump有新任务到达，如果MessagePump处于睡眠状态，这将唤醒它
   ::PostMessageW(message_hwnd_, kMsgHaveWork, reinterpret_cast<WPARAM>(this),

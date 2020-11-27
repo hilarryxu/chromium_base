@@ -70,9 +70,9 @@ class BASE_EXPORT FrameworkThread : public virtual base::SupportWeakCallback,
   // callback.
 #if defined(OS_WIN)
   bool StartWithLoop(const MessageLoop::Type type,
-                     Dispatcher* dispatcher = NULL);
+                     Dispatcher* dispatcher = nullptr);
   bool StartWithLoop(CustomMessageLoopFactory* factory,
-                     Dispatcher* dispatcher = NULL);
+                     Dispatcher* dispatcher = nullptr);
 #else
   bool StartWithLoop(const MessageLoop::Type type);
   bool StartWithLoop(CustomMessageLoopFactory* factory);
@@ -83,7 +83,7 @@ class BASE_EXPORT FrameworkThread : public virtual base::SupportWeakCallback,
   // _beginthreadex, etc.) if OS = Windows
 #if defined(OS_WIN)
   void RunOnCurrentThreadWithLoop(const MessageLoop::Type type,
-                                  Dispatcher* dispatcher = NULL);
+                                  Dispatcher* dispatcher = nullptr);
 #else
   void RunOnCurrentThreadWithLoop(const MessageLoop::Type type);
 #endif  // OS_WIN

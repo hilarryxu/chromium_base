@@ -3,9 +3,10 @@
 #ifndef BASE_FRAMEWORK_WIN_MESSAGE_PUMP_H_
 #define BASE_FRAMEWORK_WIN_MESSAGE_PUMP_H_
 
-#include "base/message_loop/message_pump.h"
-
 #include <windows.h>
+
+#include "base/base_export.h"
+#include "base/message_loop/message_pump.h"
 #include "base/time/time.h"
 
 namespace base {
@@ -21,14 +22,15 @@ class BASE_EXPORT WinMessagePump : public MessagePump {
     virtual bool Dispatch(const MSG& message) = 0;
   };
 
-  WinMessagePump() : have_work_(0), state_(NULL) {}
+  WinMessagePump() : have_work_(0), state_(nullptr) {}
   virtual ~WinMessagePump() {}
 
   void RunWithDispatcher(Delegate* delegate, Dispatcher* dispatcher);
 
   virtual void Run(Delegate* delegate) {
-    return RunWithDispatcher(delegate, NULL);
+    return RunWithDispatcher(delegate, nullptr);
   }
+
   virtual void Quit();
 
  protected:
@@ -41,6 +43,7 @@ class BASE_EXPORT WinMessagePump : public MessagePump {
 
   // 取当前定时间隔
   int64_t GetCurrentDelay() const;
+
   virtual void DoRunLoop() = 0;
 
   // 定时任务下次运行的时间

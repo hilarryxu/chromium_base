@@ -73,6 +73,7 @@
 // It seems that one of the Windows header files defines ERROR as 0.
 #ifdef _WIN32
 #define LOG_0 LOG_INFO
+#define LOG_1 LOG_DEBUG
 #endif
 
 #ifdef NDEBUG

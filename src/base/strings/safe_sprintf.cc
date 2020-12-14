@@ -35,7 +35,7 @@
 //      In most of the anticipated use cases, that's probably the preferred
 //      behavior.
 #include "base/logging.h"
-#define DEBUG_CHECK RAW_CHECK
+#define DEBUG_CHECK DCHECK
 #else
 #define DEBUG_CHECK(x) do { if (x) { } } while (0)
 #endif

@@ -18,7 +18,7 @@ void* AlignedAlloc(size_t size, size_t alignment) {
   DCHECK_EQ(alignment & (alignment - 1), 0U);
   DCHECK_EQ(alignment % sizeof(void*), 0U);
   void* ptr = NULL;
-#if defined(COMPILER_MSVC) || defined(CRT_MINGW)
+#if defined(COMPILER_MSVC) || defined(COMPILER_MINGW)
   ptr = _aligned_malloc(size, alignment);
 // Android technically supports posix_memalign(), but does not expose it in
 // the current version of the library headers used by Chrome.  Luckily,

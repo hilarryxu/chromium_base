@@ -40,7 +40,7 @@
 #include "base/base_export.h"
 #include "base/compiler_specific.h"
 
-#if defined(COMPILER_MSVC)
+#if defined(COMPILER_MSVC) || defined(COMPILER_MINGW)
 #include <malloc.h>
 #else
 #include <stdlib.h>
@@ -97,7 +97,7 @@ BASE_DECL_ALIGNED_MEMORY(4096);
 BASE_EXPORT void* AlignedAlloc(size_t size, size_t alignment);
 
 inline void AlignedFree(void* ptr) {
-#if defined(COMPILER_MSVC)
+#if defined(COMPILER_MSVC) || defined(COMPILER_MINGW)
   _aligned_free(ptr);
 #else
   free(ptr);

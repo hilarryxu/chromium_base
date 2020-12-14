@@ -17,7 +17,7 @@
 #if defined(COMPILER_MSVC)
 #include <intrin.h>
 #define BASE_WIN_GET_CALLER _ReturnAddress()
-#elif defined(CRT_MINGW)
+#elif defined(COMPILER_MINGW)
 #define BASE_WIN_GET_CALLER NULL
 #elif defined(COMPILER_GCC)
 #define BASE_WIN_GET_CALLER __builtin_extract_return_addr(\\

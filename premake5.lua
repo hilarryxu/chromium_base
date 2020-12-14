@@ -33,7 +33,6 @@ workspace "sln-chromium_base"
         "src/base/**_win.cc",
         "src/base/win/**.cc"
       }
-      defines { "UNICODE" }
       buildoptions { "/std:c++14" }
 
     filter { "system:windows", "toolset:gcc" }
@@ -41,7 +40,7 @@ workspace "sln-chromium_base"
         "src/base/**_win.cc",
         "src/base/win/**.cc"
       }
-      defines { "CRT_MINGW", "UNICODE", "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
+      defines { "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
       buildoptions { "-std=c++14", "-fno-rtti" }
 
     filter "system:linux"
@@ -56,7 +55,6 @@ workspace "sln-chromium_base"
         "src/base/threading/framework_thread.cc",
         "src/base/threading/thread_manager.cc",
       }
-      defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti" }
 
     filter "system:macosx"
@@ -70,7 +68,6 @@ workspace "sln-chromium_base"
         "src/base/threading/framework_thread.cc",
         "src/base/threading/thread_manager.cc",
       }
-      defines { "UNICODE" }
       buildoptions { "-std=c++14", "-fno-rtti", "-Wno-user-defined-warnings" }
 
   project "chromium_base_unittest"
@@ -79,7 +76,6 @@ workspace "sln-chromium_base"
     targetdir "builddir"
 
     files { "tests/**.cc" }
-    defines { "UNICODE" }
     includedirs { "src", "tests", "third_party" }
 
     filter "system:linux"

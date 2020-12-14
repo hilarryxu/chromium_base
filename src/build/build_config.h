@@ -6,7 +6,7 @@
 //    OS_WIN / OS_MACOSX / OS_LINUX / OS_POSIX (MACOSX or LINUX) /
 //    OS_NACL (NACL_SFI or NACL_NONSFI) / OS_NACL_SFI / OS_NACL_NONSFI
 //  Compiler:
-//    COMPILER_MSVC / COMPILER_GCC
+//    COMPILER_MSVC / COMPILER_GCC / COMPILER_MINGW
 //  Processor:
 //    ARCH_CPU_X86 / ARCH_CPU_X86_64 / ARCH_CPU_X86_FAMILY (X86 or X86_64)
 //    ARCH_CPU_32_BITS / ARCH_CPU_64_BITS
@@ -78,6 +78,10 @@
 #define USE_TCMALLOC 1
 #endif
 // Compiler detection.
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define COMPILER_MINGW 1
+#endif
+
 #if defined(__GNUC__)
 #define COMPILER_GCC 1
 #elif defined(_MSC_VER)

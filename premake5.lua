@@ -27,6 +27,7 @@ workspace "sln-chromium_base"
 
     includedirs { "src" }
     libdirs { "builddir" }
+    defines { "UNICODE" }
 
     filter "action:vs*"
       files {
@@ -77,6 +78,7 @@ workspace "sln-chromium_base"
 
     files { "tests/**.cc" }
     includedirs { "src", "tests", "third_party" }
+    defines { "UNICODE" }
 
     filter "system:linux"
       buildoptions { "-std=c++14", "-fno-rtti" }

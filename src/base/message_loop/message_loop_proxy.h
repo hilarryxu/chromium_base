@@ -28,9 +28,7 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   static std::shared_ptr<MessageLoopProxy> current();
 
   // MessageLoopProxy implementation
-  // virtual bool PostTask(const Closure& task);
   bool PostDelayedTask(const Closure& task, TimeDelta delay) override;
-  // virtual bool PostNonNestableTask(const Closure& task);
   bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay) override;
 
   template <typename T1, typename T2>
@@ -47,7 +45,7 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   }
 
   bool RunsTasksOnCurrentThread() const override;
-  virtual ~MessageLoopProxy() override;
+  ~MessageLoopProxy() override;
 
  private:
   // Allow the messageLoop to create a MessageLoopProxy.
@@ -57,7 +55,7 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   MessageLoopProxy();
 
   // Called directly by MessageLoop::~MessageLoop.
-  virtual void WillDestroyCurrentMessageLoop();
+  void WillDestroyCurrentMessageLoop();
 
   // Called when the reference decreased to 0
   void OnDestruct() const override;

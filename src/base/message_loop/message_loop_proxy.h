@@ -9,6 +9,7 @@
 #include "base/message_loop/message_loop.h"
 #include "base/synchronization/lock.h"
 #include "base/callback.h"
+#include "base/task/single_thread_task_runner.h"
 
 namespace base {
 
@@ -22,15 +23,15 @@ struct BASE_EXPORT MessageLoopProxyTraits {
 // A stock implementation of MessageLoopProxy that is created and managed by a
 // MessageLoop. For now a MessageLoopProxy can only be created as part of a
 // MessageLoop.
-class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
+class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base::SupportWeakCallback {
  public:
   static std::shared_ptr<MessageLoopProxy> current();
 
   // MessageLoopProxy implementation
-  virtual bool PostTask(const Closure& task);
-  virtual bool PostDelayedTask(const Closure& task, TimeDelta delay);
-  virtual bool PostNonNestableTask(const Closure& task);
-  virtual bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay);
+  // virtual bool PostTask(const Closure& task);
+  bool PostDelayedTask(const Closure& task, TimeDelta delay) override;
+  // virtual bool PostNonNestableTask(const Closure& task);
+  bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay) override;
 
   template <typename T1, typename T2>
   bool PostTaskAndReply(const std::function<T1>& task,
@@ -45,8 +46,8 @@ class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
     return true;
   }
 
-  virtual bool BelongsToCurrentThread() const;
-  virtual ~MessageLoopProxy();
+  bool RunsTasksOnCurrentThread() const override;
+  virtual ~MessageLoopProxy() override;
 
  private:
   // Allow the messageLoop to create a MessageLoopProxy.
@@ -59,7 +60,7 @@ class BASE_EXPORT MessageLoopProxy : public base::SupportWeakCallback {
   virtual void WillDestroyCurrentMessageLoop();
 
   // Called when the reference decreased to 0
-  virtual void OnDestruct() const;
+  void OnDestruct() const override;
 
   bool PostTaskHelper(const Closure& task, TimeDelta delay, bool nestable);
 

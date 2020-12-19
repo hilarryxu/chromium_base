@@ -14,24 +14,24 @@ namespace base {
 
 MessageLoopProxy::~MessageLoopProxy() {}
 
-bool MessageLoopProxy::PostTask(const Closure& task) {
-  return PostTaskHelper(task, TimeDelta(), true);
-}
+// bool MessageLoopProxy::PostTask(const Closure& task) {
+//   return PostTaskHelper(task, TimeDelta(), true);
+// }
 
 bool MessageLoopProxy::PostDelayedTask(const Closure& task, TimeDelta delay) {
   return PostTaskHelper(task, delay, true);
 }
 
-bool MessageLoopProxy::PostNonNestableTask(const Closure& task) {
-  return PostTaskHelper(task, TimeDelta(), false);
-}
+// bool MessageLoopProxy::PostNonNestableTask(const Closure& task) {
+//   return PostTaskHelper(task, TimeDelta(), false);
+// }
 
 bool MessageLoopProxy::PostNonNestableDelayedTask(const Closure& task,
                                                   TimeDelta delay) {
   return PostTaskHelper(task, delay, false);
 }
 
-bool MessageLoopProxy::BelongsToCurrentThread() const {
+bool MessageLoopProxy::RunsTasksOnCurrentThread() const {
   AutoLock lock(message_loop_lock_);
   return (target_message_loop_ &&
           (MessageLoop::current() == target_message_loop_));

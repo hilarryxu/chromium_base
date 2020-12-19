@@ -1,5 +1,12 @@
+newoption {
+  trigger = "with-tests",
+  description = "Build tests"
+}
+
 workspace "sln-chromium_base"
   objdir "builddir/obj"
+  targetdir "builddir"
+  libdirs { "builddir" }
 
   configurations { "Debug", "Release" }
 
@@ -14,7 +21,6 @@ workspace "sln-chromium_base"
   project "chromium_base"
     kind "StaticLib"
     language "C++"
-    targetdir "builddir"
     files { "src/base/**.cc" }
     removefiles { "src/base/third_party/dmg_fp/dtoa.cc" }
     removefiles {
@@ -26,7 +32,6 @@ workspace "sln-chromium_base"
     }
 
     includedirs { "src" }
-    libdirs { "builddir" }
     defines { "UNICODE" }
 
     filter "action:vs*"
@@ -71,10 +76,11 @@ workspace "sln-chromium_base"
       }
       buildoptions { "-std=c++14", "-fno-rtti", "-Wno-user-defined-warnings" }
 
+
+if _OPTIONS["with-tests"] then
   project "chromium_base_unittest"
     kind "ConsoleApp"
     language "C++"
-    targetdir "builddir"
 
     files { "tests/**.cc" }
     includedirs { "src", "tests", "third_party" }
@@ -90,3 +96,4 @@ workspace "sln-chromium_base"
     filter "system:macosx"
       buildoptions { "-std=c++14", "-fno-rtti" }
       links { "chromium_base", "pthread" }
+end

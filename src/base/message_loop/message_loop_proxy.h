@@ -31,19 +31,6 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   bool PostDelayedTask(const Closure& task, TimeDelta delay) override;
   bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay) override;
 
-  template <typename T1, typename T2>
-  bool PostTaskAndReply(const std::function<T1>& task,
-                        const std::function<T2>& reply) {
-    PostTaskAndReplyRelay<T1, T2>* relay =
-        new PostTaskAndReplyRelay<T1, T2>(task, reply);
-    if (!PostTask(base::Bind(&PostTaskAndReplyRelay<T1, T2>::Run, relay))) {
-      delete relay;
-      return false;
-    }
-
-    return true;
-  }
-
   bool RunsTasksOnCurrentThread() const override;
   ~MessageLoopProxy() override;
 
@@ -67,86 +54,7 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   // The lock that protects access to target_message_loop_.
   mutable Lock message_loop_lock_;
   MessageLoop* target_message_loop_;
-
- private:
-  // This relay class remembers the MessageLoop that it was created on, and
-  // ensures that both the |task| and |reply| Closures are deleted on this same
-  // thread. Also, |task| is guaranteed to be deleted before |reply| is run or
-  // deleted.
-  //
-  // If this is not possible because the originating MessageLoop is no longer
-  // available, the the |task| and |reply| Closures are leaked.  Leaking is
-  // considered preferable to having a thread-safetey violations caused by
-  // invoking the Closure destructor on the wrong thread.
-  class MessageLoopProxyNull {};
-
-  template <typename T1, typename T2>
-  class PostTaskAndReplyRelay : public base::SupportWeakCallback {
-   public:
-    PostTaskAndReplyRelay(const std::function<T1>& task,
-                          const std::function<T2>& reply)
-        : origin_loop_(MessageLoopProxy::current()) {
-      std_task_ = task;
-      std_reply_ = reply;
-    }
-
-    void Run() {
-      auto ret = std_task_();
-      origin_loop_->PostTask(base::Bind(
-          &PostTaskAndReplyRelay::RunReplyAndSelfDestructWithParam<decltype(
-              ret)>,
-          this, ret));
-    }
-
-    ~PostTaskAndReplyRelay() {
-      assert(origin_loop_->BelongsToCurrentThread());
-      std_task_ = nullptr;
-      std_reply_ = nullptr;
-    }
-
-   private:
-    void RunReplyAndSelfDestruct() {
-      assert(origin_loop_->BelongsToCurrentThread());
-
-      // Force |task_| to be released before |reply_| is to ensure that no one
-      // accidentally depends on |task_| keeping one of its arguments alive
-      // while |reply_| is executing.
-      std_task_ = nullptr;
-
-      std_reply_();
-
-      // Cue mission impossible theme.
-      delete this;
-    }
-
-    template <typename InernalT>
-    void RunReplyAndSelfDestructWithParam(InernalT ret) {
-      assert(origin_loop_->BelongsToCurrentThread());
-
-      // Force |task_| to be released before |reply_| is to ensure that no one
-      // accidentally depends on |task_| keeping one of its arguments alive
-      // while |reply_| is executing.
-      std_task_ = nullptr;
-
-      std_reply_(ret);
-
-      // Cue mission impossible theme.
-      delete this;
-    }
-
-    std::shared_ptr<MessageLoopProxy> origin_loop_;
-
-    std::function<T2> std_reply_;
-    std::function<T1> std_task_;
-  };
 };
-
-template <>
-void MessageLoopProxy::PostTaskAndReplyRelay<void(), void()>::Run() {
-  std_task_();
-  origin_loop_->PostTask(
-      base::Bind(&PostTaskAndReplyRelay::RunReplyAndSelfDestruct, this));
-}
 
 }  // namespace base
 

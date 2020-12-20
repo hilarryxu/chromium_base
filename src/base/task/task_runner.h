@@ -8,8 +8,10 @@
 #include <stddef.h>
 
 #include "base/base_export.h"
-#include "base/callback_forward.h"
+#include "base/logging.h"
+#include "base/callback.h"
 #include "base/time/time.h"
+#include "base/task/thread_task_runner_handle.h"
 
 namespace base {
 
@@ -117,11 +119,19 @@ class BASE_EXPORT TaskRunner {
   //   * The DataLoader object can be deleted while |task| is still running,
   //     and the reply will cancel itself safely because it is bound to a
   //     WeakPtr<>.
-#if 0
-  bool PostTaskAndReply(const tracked_objects::Location& from_here,
-                        const Closure& task,
-                        const Closure& reply);
-#endif
+  template <typename T1, typename T2>
+  bool PostTaskAndReply(
+                        const std::function<T1>& task,
+                        const std::function<T2>& reply) {
+    PostTaskAndReplyRelay<T1, T2>* relay =
+        new PostTaskAndReplyRelay<T1, T2>(task, reply);
+    if (!PostTask(base::Bind(&PostTaskAndReplyRelay<T1, T2>::Run, relay))) {
+      delete relay;
+      return false;
+    }
+
+    return true;
+  }
 
  protected:
   friend struct TaskRunnerTraits;
@@ -133,7 +143,84 @@ class BASE_EXPORT TaskRunner {
   // deletes |this|, but can be overridden to do something else, like
   // delete on a certain thread.
   virtual void OnDestruct() const;
+
+ private:
+  // This relay class remembers the MessageLoop that it was created on, and
+  // ensures that both the |task| and |reply| Closures are deleted on this same
+  // thread. Also, |task| is guaranteed to be deleted before |reply| is run or
+  // deleted.
+  //
+  // If this is not possible because the originating MessageLoop is no longer
+  // available, the the |task| and |reply| Closures are leaked.  Leaking is
+  // considered preferable to having a thread-safetey violations caused by
+  // invoking the Closure destructor on the wrong thread.
+  template <typename T1, typename T2>
+  class PostTaskAndReplyRelay : public base::SupportWeakCallback {
+   public:
+    PostTaskAndReplyRelay(const std::function<T1>& task,
+                          const std::function<T2>& reply)
+        : origin_task_runner_(ThreadTaskRunnerHandle::Get()) {
+      std_task_ = task;
+      std_reply_ = reply;
+    }
+
+    void Run() {
+      auto ret = std_task_();
+      origin_task_runner_->PostTask(base::Bind(
+          &PostTaskAndReplyRelay::RunReplyAndSelfDestructWithParam<decltype(
+              ret)>,
+          this, ret));
+    }
+
+    ~PostTaskAndReplyRelay() {
+      DCHECK(origin_task_runner_->RunsTasksOnCurrentThread());
+      std_task_ = nullptr;
+      std_reply_ = nullptr;
+    }
+
+   private:
+    void RunReplyAndSelfDestruct() {
+      DCHECK(origin_task_runner_->RunsTasksOnCurrentThread());
+
+      // Force |task_| to be released before |reply_| is to ensure that no one
+      // accidentally depends on |task_| keeping one of its arguments alive
+      // while |reply_| is executing.
+      std_task_ = nullptr;
+
+      std_reply_();
+
+      // Cue mission impossible theme.
+      delete this;
+    }
+
+    template <typename InernalT>
+    void RunReplyAndSelfDestructWithParam(InernalT ret) {
+      DCHECK(origin_task_runner_->RunsTasksOnCurrentThread());
+
+      // Force |task_| to be released before |reply_| is to ensure that no one
+      // accidentally depends on |task_| keeping one of its arguments alive
+      // while |reply_| is executing.
+      std_task_ = nullptr;
+
+      std_reply_(ret);
+
+      // Cue mission impossible theme.
+      delete this;
+    }
+
+    std::shared_ptr<TaskRunner> origin_task_runner_;
+
+    std::function<T2> std_reply_;
+    std::function<T1> std_task_;
+  };
 };
+
+template <>
+void TaskRunner::PostTaskAndReplyRelay<void(), void()>::Run() {
+  std_task_();
+  origin_task_runner_->PostTask(
+      base::Bind(&PostTaskAndReplyRelay::RunReplyAndSelfDestruct, this));
+}
 
 struct BASE_EXPORT TaskRunnerTraits {
   static void Destruct(const TaskRunner* task_runner) {

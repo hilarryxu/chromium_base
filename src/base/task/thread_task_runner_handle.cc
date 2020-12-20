@@ -7,6 +7,7 @@
 #include "base/lazy_instance.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/threading/thread_local.h"
+#include "base/message_loop/message_loop_proxy.h"
 
 namespace base {
 
@@ -19,14 +20,18 @@ base::LazyInstance<base::ThreadLocalPointer<ThreadTaskRunnerHandle> >::Leaky
 
 // static
 std::shared_ptr<SingleThreadTaskRunner> ThreadTaskRunnerHandle::Get() {
-  ThreadTaskRunnerHandle* current = lazy_tls_ptr.Pointer()->Get();
-  DCHECK(current);
-  return current->task_runner_;
+  // ThreadTaskRunnerHandle* current = lazy_tls_ptr.Pointer()->Get();
+  // DCHECK(current);
+  // return current->task_runner_;
+  std::shared_ptr<MessageLoopProxy> loop_proxy = MessageLoopProxy::current();
+  DCHECK(loop_proxy);
+  return loop_proxy;
 }
 
 // static
 bool ThreadTaskRunnerHandle::IsSet() {
-  return lazy_tls_ptr.Pointer()->Get() != NULL;
+  // return lazy_tls_ptr.Pointer()->Get() != NULL;
+  return MessageLoopProxy::current() != nullptr;
 }
 
 ThreadTaskRunnerHandle::ThreadTaskRunnerHandle(

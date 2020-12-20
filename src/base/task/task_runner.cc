@@ -6,55 +6,12 @@
 
 #include "base/compiler_specific.h"
 #include "base/logging.h"
-// #include "base/threading/post_task_and_reply_impl.h"
 
 namespace base {
-
-namespace {
-
-#if 0
-// TODO(akalin): There's only one other implementation of
-// PostTaskAndReplyImpl in WorkerPool.  Investigate whether it'll be
-// possible to merge the two.
-class PostTaskAndReplyTaskRunner : public internal::PostTaskAndReplyImpl {
- public:
-  explicit PostTaskAndReplyTaskRunner(TaskRunner* destination);
-
- private:
-  bool PostTask(const tracked_objects::Location& from_here,
-                const Closure& task) override;
-
-  // Non-owning.
-  TaskRunner* destination_;
-};
-
-PostTaskAndReplyTaskRunner::PostTaskAndReplyTaskRunner(
-    TaskRunner* destination) : destination_(destination) {
-  DCHECK(destination_);
-}
-
-bool PostTaskAndReplyTaskRunner::PostTask(
-    const tracked_objects::Location& from_here,
-    const Closure& task) {
-  return destination_->PostTask(from_here, task);
-}
-#endif
-
-}  // namespace
 
 bool TaskRunner::PostTask(const Closure& task) {
   return PostDelayedTask(task, base::TimeDelta());
 }
-
-#if 0
-bool TaskRunner::PostTaskAndReply(
-    const tracked_objects::Location& from_here,
-    const Closure& task,
-    const Closure& reply) {
-  return PostTaskAndReplyTaskRunner(this).PostTaskAndReply(
-      from_here, task, reply);
-}
-#endif
 
 TaskRunner::TaskRunner() {}
 

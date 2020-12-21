@@ -62,7 +62,7 @@ class BASE_EXPORT DeferredSequencedTaskRunner : public SequencedTaskRunner {
   mutable Lock lock_;
 
   bool started_;
-  const std::shared_ptr<SequencedTaskRunner> target_task_runner_;
+  std::shared_ptr<SequencedTaskRunner> target_task_runner_;
   std::vector<DeferredTask> deferred_tasks_queue_;
 
   DISALLOW_COPY_AND_ASSIGN(DeferredSequencedTaskRunner);

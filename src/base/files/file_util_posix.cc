@@ -132,7 +132,7 @@ bool VerifySpecificPathControlledByUser(const FilePath& path,
 
 std::string TempFileName() {
 #if defined(OS_MACOSX)
-  // TODO: ?
+  // FIXME(xcc): to be fixed
   // return StringPrintf(".%s.XXXXXX", base::mac::BaseBundleID());
   return "";
 #endif

@@ -36,6 +36,7 @@ static LazyInstance<
 
 // static
 bool SysInfo::IsLowEndDevice() {
+  // FIXME(xcc): to be fixed
   // const std::string group_name =
   //     base::FieldTrialList::FindFullName("MemoryReduction");
 

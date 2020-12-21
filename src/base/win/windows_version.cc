@@ -162,6 +162,7 @@ OSInfo::~OSInfo() {
 }
 
 Version OSInfo::Kernel32Version() const {
+  // FIXME(xcc): to be fixed
   return kernel32_version_;
 }
 

@@ -36,6 +36,7 @@ void SetNameInternal(PlatformThreadId thread_id, const char* name) {
   info.dwThreadID = thread_id;
   info.dwFlags = 0;
 
+  // FIXME(xcc): MINGW to be fixed
 #if defined(COMPILER_MSVC)
   __try {
     RaiseException(kVCThreadNameException, 0, sizeof(info)/sizeof(DWORD),

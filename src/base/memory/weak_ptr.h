@@ -102,6 +102,7 @@ class BASE_EXPORT WeakReference {
 
     ~Flag();
 
+    // FIXME(xcc): to be fixed
     // SequenceChecker sequence_checker_;
     bool is_valid_;
   };

@@ -139,7 +139,7 @@ bool PathProviderWin(int key, FilePath* result) {
       if (win::GetVersion() < win::VERSION_WIN8)
         return false;
 
-      // TODO: ?
+      // FIXME(xcc): to be fixed
       // base::win::ScopedCoMem<wchar_t> path_buf;
       // if (FAILED(SHGetKnownFolderPath(FOLDERID_ApplicationShortcuts, 0, NULL,
       //                                 &path_buf)))

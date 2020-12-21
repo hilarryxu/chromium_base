@@ -22,13 +22,13 @@ workspace "sln-chromium_base"
     kind "StaticLib"
     language "C++"
     files { "src/base/**.cc" }
-    removefiles { "src/base/third_party/dmg_fp/dtoa.cc" }
     removefiles {
+      "src/base/third_party/dmg_fp/dtoa.cc",
       "src/base/**_win.cc",
       "src/base/win/**.cc",
       "src/base/**_posix.cc",
       "src/base/posix/**.cc",
-      "src/base/**_linux.cc"
+      "src/base/**_linux.cc",
     }
 
     includedirs { "src" }
@@ -57,7 +57,6 @@ workspace "sln-chromium_base"
       }
       removefiles {
         "src/base/message_loop/**",
-        "src/base/threading/thread.cc",
         "src/base/threading/framework_thread.cc",
         "src/base/threading/thread_manager.cc",
       }
@@ -70,7 +69,6 @@ workspace "sln-chromium_base"
       }
       removefiles {
         "src/base/message_loop/**",
-        "src/base/threading/thread.cc",
         "src/base/threading/framework_thread.cc",
         "src/base/threading/thread_manager.cc",
       }

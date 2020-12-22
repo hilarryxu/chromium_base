@@ -4,7 +4,7 @@
 
 #include "build/build_config.h"
 
-#if defined(COMPILER_MSVC) || defined(COMPILER_MINGW)
+#if defined(COMPILER_MSVC)
 #include <intrin.h>
 #endif
 
@@ -94,7 +94,7 @@ LocationSnapshot::~LocationSnapshot() {
 __declspec(noinline)
 #endif
 BASE_EXPORT const void* GetProgramCounter() {
-#if defined(COMPILER_MSVC) || defined(COMPILER_MINGW)
+#if defined(COMPILER_MSVC)
   return _ReturnAddress();
 #elif defined(COMPILER_GCC) && !defined(OS_NACL)
   return __builtin_extract_return_addr(__builtin_return_address(0));

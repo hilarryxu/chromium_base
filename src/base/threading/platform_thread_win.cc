@@ -28,6 +28,7 @@ typedef struct tagTHREADNAME_INFO {
   DWORD dwFlags;  // Reserved for future use, must be zero.
 } THREADNAME_INFO;
 
+#if defined(COMPILER_MSVC)
 // This function has try handling, so it is separated out of its caller.
 void SetNameInternal(PlatformThreadId thread_id, const char* name) {
   THREADNAME_INFO info;
@@ -36,15 +37,13 @@ void SetNameInternal(PlatformThreadId thread_id, const char* name) {
   info.dwThreadID = thread_id;
   info.dwFlags = 0;
 
-  // FIXME(xcc): MINGW to be fixed
-#if defined(COMPILER_MSVC)
   __try {
     RaiseException(kVCThreadNameException, 0, sizeof(info)/sizeof(DWORD),
                    reinterpret_cast<DWORD_PTR*>(&info));
   } __except(EXCEPTION_CONTINUE_EXECUTION) {
   }
-#endif
 }
+#endif
 
 struct ThreadParams {
   PlatformThread::Delegate* delegate;
@@ -182,7 +181,9 @@ void PlatformThread::SetName(const std::string& name) {
   // if (!::IsDebuggerPresent() && !base::debug::IsBinaryInstrumented())
   //   return;
 
+#if defined(COMPILER_MSVC)
   SetNameInternal(CurrentId(), name.c_str());
+#endif
 }
 
 // static

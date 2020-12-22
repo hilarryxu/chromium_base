@@ -51,6 +51,7 @@
 
 #include "base/base_export.h"
 #include "base/callback.h"
+#include "base/location.h"
 #include "base/macros.h"
 #include "base/time/time.h"
 
@@ -72,7 +73,8 @@ class BASE_EXPORT Timer {
   Timer(bool retain_user_task, bool is_repeating);
 
   // Construct a timer with retained task info.
-  Timer(TimeDelta delay,
+  Timer(const tracked_objects::Location& posted_from,
+        TimeDelta delay,
         const base::Closure& user_task,
         bool is_repeating);
 
@@ -91,7 +93,8 @@ class BASE_EXPORT Timer {
 
   // Start the timer to run at the given |delay| from now. If the timer is
   // already running, it will be replaced to call the given |user_task|.
-  virtual void Start(TimeDelta delay,
+  virtual void Start(const tracked_objects::Location& posted_from,
+                     TimeDelta delay,
                      const base::Closure& user_task);
 
   // Call this method to stop and cancel the timer.  It is a no-op if the timer
@@ -108,13 +111,15 @@ class BASE_EXPORT Timer {
  protected:
   // Used to initiate a new delayed task.  This has the side-effect of disabling
   // scheduled_task_ if it is non-null.
-  void SetTaskInfo(TimeDelta delay,
+  void SetTaskInfo(const tracked_objects::Location& posted_from,
+                   TimeDelta delay,
                    const base::Closure& user_task);
 
   void set_user_task(const Closure& task) { user_task_ = task; }
   void set_desired_run_time(TimeTicks desired) { desired_run_time_ = desired; }
   void set_is_running(bool running) { is_running_ = running; }
 
+  const tracked_objects::Location& posted_from() const { return posted_from_; }
   bool retain_user_task() const { return retain_user_task_; }
   bool is_repeating() const { return is_repeating_; }
   bool is_running() const { return is_running_; }
@@ -153,6 +158,8 @@ class BASE_EXPORT Timer {
   // task runner for the current thread should be used.
   std::shared_ptr<SingleThreadTaskRunner> task_runner_;
 
+  // Location in user code.
+  tracked_objects::Location posted_from_;
   // Delay requested by user.
   TimeDelta delay_;
   // user_task_ is what the user wants to be run at desired_run_time_.

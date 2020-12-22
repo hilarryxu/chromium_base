@@ -14,21 +14,16 @@ namespace base {
 
 MessageLoopProxy::~MessageLoopProxy() {}
 
-// bool MessageLoopProxy::PostTask(const Closure& task) {
-//   return PostTaskHelper(task, TimeDelta(), true);
-// }
-
-bool MessageLoopProxy::PostDelayedTask(const Closure& task, TimeDelta delay) {
-  return PostTaskHelper(task, delay, true);
+bool MessageLoopProxy::PostDelayedTask(const tracked_objects::Location& from_here,
+                                       const Closure& task,
+                                       TimeDelta delay) {
+  return PostTaskHelper(from_here, task, delay, true);
 }
 
-// bool MessageLoopProxy::PostNonNestableTask(const Closure& task) {
-//   return PostTaskHelper(task, TimeDelta(), false);
-// }
-
-bool MessageLoopProxy::PostNonNestableDelayedTask(const Closure& task,
+bool MessageLoopProxy::PostNonNestableDelayedTask(const tracked_objects::Location& from_here,
+                                                  const Closure& task,
                                                   TimeDelta delay) {
-  return PostTaskHelper(task, delay, false);
+  return PostTaskHelper(from_here, task, delay, false);
 }
 
 bool MessageLoopProxy::RunsTasksOnCurrentThread() const {
@@ -50,6 +45,7 @@ void MessageLoopProxy::OnDestruct() const {
     if (target_message_loop_ &&
         (MessageLoop::current() != target_message_loop_)) {
       target_message_loop_->PostNonNestableTask(
+          FROM_HERE,
           base::Bind(&MessageLoopProxy::DeleteSelf, this));
       delete_later = true;
     }
@@ -65,21 +61,22 @@ void MessageLoopProxy::DeleteSelf() const {
 MessageLoopProxy::MessageLoopProxy()
     : target_message_loop_(MessageLoop::current()) {}
 
-bool MessageLoopProxy::PostTaskHelper(const Closure& task,
+bool MessageLoopProxy::PostTaskHelper(const tracked_objects::Location& from_here,
+                                      const Closure& task,
                                       TimeDelta delay,
                                       bool nestable) {
   AutoLock lock(message_loop_lock_);
   if (target_message_loop_) {
     if (nestable) {
       if (delay == TimeDelta())
-        target_message_loop_->PostTask(task);
+        target_message_loop_->PostTask(from_here, task);
       else
-        target_message_loop_->PostDelayedTask(task, delay);
+        target_message_loop_->PostDelayedTask(from_here, task, delay);
     } else {
       if (delay == TimeDelta())
-        target_message_loop_->PostNonNestableTask(task);
+        target_message_loop_->PostNonNestableTask(from_here, task);
       else
-        target_message_loop_->PostNonNestableDelayedTask(task, delay);
+        target_message_loop_->PostNonNestableDelayedTask(from_here, task, delay);
     }
     return true;
   }

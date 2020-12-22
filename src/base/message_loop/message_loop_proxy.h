@@ -28,8 +28,12 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   static std::shared_ptr<MessageLoopProxy> current();
 
   // MessageLoopProxy implementation
-  bool PostDelayedTask(const Closure& task, TimeDelta delay) override;
-  bool PostNonNestableDelayedTask(const Closure& task, TimeDelta delay) override;
+  bool PostDelayedTask(const tracked_objects::Location& from_here,
+                       const Closure& task,
+                       TimeDelta delay) override;
+  bool PostNonNestableDelayedTask(const tracked_objects::Location& from_here,
+                                  const Closure& task,
+                                  TimeDelta delay) override;
 
   bool RunsTasksOnCurrentThread() const override;
   ~MessageLoopProxy() override;
@@ -47,7 +51,8 @@ class BASE_EXPORT MessageLoopProxy : public SingleThreadTaskRunner, public base:
   // Called when the reference decreased to 0
   void OnDestruct() const override;
 
-  bool PostTaskHelper(const Closure& task, TimeDelta delay, bool nestable);
+  bool PostTaskHelper(const tracked_objects::Location& from_here,
+                      const Closure& task, TimeDelta delay, bool nestable);
 
   void DeleteSelf() const;
 

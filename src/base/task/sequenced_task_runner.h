@@ -107,9 +107,11 @@ class BASE_EXPORT SequencedTaskRunner : public TaskRunner {
   // TODO(akalin): Get rid of the boolean return value for the methods
   // below.
 
-  bool PostNonNestableTask(const Closure& task);
+  bool PostNonNestableTask(const tracked_objects::Location& from_here,
+                           const Closure& task);
 
   virtual bool PostNonNestableDelayedTask(
+      const tracked_objects::Location& from_here,
       const Closure& task,
       TimeDelta delay) = 0;
 

@@ -6,8 +6,9 @@
 
 namespace base {
 
-bool SequencedTaskRunner::PostNonNestableTask(const Closure& task) {
-  return PostNonNestableDelayedTask(task, base::TimeDelta());
+bool SequencedTaskRunner::PostNonNestableTask(const tracked_objects::Location& from_here,
+                                              const Closure& task) {
+  return PostNonNestableDelayedTask(from_here, task, base::TimeDelta());
 }
 
 }  // namespace base

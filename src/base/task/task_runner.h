@@ -12,6 +12,7 @@
 #include "base/callback.h"
 #include "base/time/time.h"
 #include "base/task/thread_task_runner_handle.h"
+#include "base/location.h"
 
 namespace base {
 
@@ -60,14 +61,15 @@ class BASE_EXPORT TaskRunner {
   // will not be run.
   //
   // Equivalent to PostDelayedTask(from_here, task, 0).
-  bool PostTask(const Closure& task);
+  bool PostTask(const tracked_objects::Location& from_here, const Closure& task);
 
   // Like PostTask, but tries to run the posted task only after
   // |delay_ms| has passed.
   //
   // It is valid for an implementation to ignore |delay_ms|; that is,
   // to have PostDelayedTask behave the same as PostTask.
-  virtual bool PostDelayedTask(const Closure& task,
+  virtual bool PostDelayedTask(const tracked_objects::Location& from_here,
+                               const Closure& task,
                                TimeDelta delay) = 0;
 
   // Returns true if the current thread is a thread on which a task
@@ -120,12 +122,12 @@ class BASE_EXPORT TaskRunner {
   //     and the reply will cancel itself safely because it is bound to a
   //     WeakPtr<>.
   template <typename T1, typename T2>
-  bool PostTaskAndReply(
+  bool PostTaskAndReply(const tracked_objects::Location& from_here,
                         const std::function<T1>& task,
                         const std::function<T2>& reply) {
     PostTaskAndReplyRelay<T1, T2>* relay =
-        new PostTaskAndReplyRelay<T1, T2>(task, reply);
-    if (!PostTask(base::Bind(&PostTaskAndReplyRelay<T1, T2>::Run, relay))) {
+        new PostTaskAndReplyRelay<T1, T2>(from_here, task, reply);
+    if (!PostTask(from_here, base::Bind(&PostTaskAndReplyRelay<T1, T2>::Run, relay))) {
       delete relay;
       return false;
     }
@@ -157,16 +159,18 @@ class BASE_EXPORT TaskRunner {
   template <typename T1, typename T2>
   class PostTaskAndReplyRelay : public base::SupportWeakCallback {
    public:
-    PostTaskAndReplyRelay(const std::function<T1>& task,
+    PostTaskAndReplyRelay(const tracked_objects::Location& from_here,
+                          const std::function<T1>& task,
                           const std::function<T2>& reply)
-        : origin_task_runner_(ThreadTaskRunnerHandle::Get()) {
+        : from_here_(from_here),
+          origin_task_runner_(ThreadTaskRunnerHandle::Get()) {
       std_task_ = task;
       std_reply_ = reply;
     }
 
     void Run() {
       auto ret = std_task_();
-      origin_task_runner_->PostTask(base::Bind(
+      origin_task_runner_->PostTask(from_here_, base::Bind(
           &PostTaskAndReplyRelay::RunReplyAndSelfDestructWithParam<decltype(
               ret)>,
           this, ret));
@@ -210,6 +214,7 @@ class BASE_EXPORT TaskRunner {
 
     std::shared_ptr<TaskRunner> origin_task_runner_;
 
+    tracked_objects::Location from_here_;
     std::function<T2> std_reply_;
     std::function<T1> std_task_;
   };
@@ -219,6 +224,7 @@ template <>
 void TaskRunner::PostTaskAndReplyRelay<void(), void()>::Run() {
   std_task_();
   origin_task_runner_->PostTask(
+      from_here_,
       base::Bind(&PostTaskAndReplyRelay::RunReplyAndSelfDestruct, this));
 }
 

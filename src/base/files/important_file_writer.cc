@@ -166,7 +166,8 @@ void ImportantFileWriter::ScheduleWrite(DataSerializer* serializer) {
   serializer_ = serializer;
 
   if (!timer_.IsRunning()) {
-    timer_.Start(commit_interval_,
+    timer_.Start(FROM_HERE,
+                 commit_interval_,
                  std::bind(&ImportantFileWriter::DoScheduledWrite, this));
   }
 }
@@ -198,11 +199,12 @@ bool ImportantFileWriter::PostWriteTask(const std::function<bool()>& task) {
   if (on_next_successful_write_) {
     std::function<void(bool)> reply = base::Bind(&ImportantFileWriter::ForwardSuccessfulWrite, this, std::placeholders::_1);
     return task_runner_->PostTaskAndReply(
+      FROM_HERE,
       task,
       reply
     );
   }
-  return task_runner_->PostTask(task);
+  return task_runner_->PostTask(FROM_HERE, task);
 }
 
 void ImportantFileWriter::ForwardSuccessfulWrite(bool result) {

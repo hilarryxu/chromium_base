@@ -11,7 +11,8 @@ MockTimer::MockTimer(bool retain_user_task, bool is_repeating)
       is_running_(false) {
 }
 
-MockTimer::MockTimer(TimeDelta delay,
+MockTimer::MockTimer(const tracked_objects::Location& posted_from,
+                     TimeDelta delay,
                      const base::Closure& user_task,
                      bool is_repeating)
     : Timer(true, is_repeating),
@@ -30,7 +31,8 @@ base::TimeDelta MockTimer::GetCurrentDelay() const {
   return delay_;
 }
 
-void MockTimer::Start(TimeDelta delay,
+void MockTimer::Start(const tracked_objects::Location& posted_from,
+                      TimeDelta delay,
                       const base::Closure& user_task) {
   delay_ = delay;
   user_task_ = user_task;

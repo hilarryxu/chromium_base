@@ -153,6 +153,7 @@ void FrameworkThread::StopSoon() {
 
   stopping_ = true;
   message_loop_->PostNonNestableTask(
+      FROM_HERE,
       base::Bind(&FrameworkThread::DoStopSoon, this));
 }
 

@@ -150,24 +150,24 @@ void MessageLoop::QuitNow() {
     pump_->Quit();
 }
 
-void MessageLoop::PostTask(const Closure& task) {
-  PendingTask pending_task(task);
+void MessageLoop::PostTask(const tracked_objects::Location& from_here, const Closure& task) {
+  PendingTask pending_task(from_here, task);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostDelayedTask(const Closure& task, TimeDelta delay) {
-  PendingTask pending_task(task, TimeTicks::Now() + delay, true);
+void MessageLoop::PostDelayedTask(const tracked_objects::Location& from_here, const Closure& task, TimeDelta delay) {
+  PendingTask pending_task(from_here, task, TimeTicks::Now() + delay, true);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableTask(const Closure& task) {
-  PendingTask pending_task(task, TimeTicks(), false);
+void MessageLoop::PostNonNestableTask(const tracked_objects::Location& from_here, const Closure& task) {
+  PendingTask pending_task(from_here, task, TimeTicks(), false);
   AddToIncomingQueue(pending_task);
 }
 
-void MessageLoop::PostNonNestableDelayedTask(const Closure& task,
+void MessageLoop::PostNonNestableDelayedTask(const tracked_objects::Location& from_here, const Closure& task,
                                              TimeDelta delay) {
-  PendingTask pending_task(task, TimeTicks::Now() + delay, false);
+  PendingTask pending_task(from_here, task, TimeTicks::Now() + delay, false);
   AddToIncomingQueue(pending_task);
 }
 
@@ -392,13 +392,16 @@ MessageLoop::AutoRunState::~AutoRunState() {
   loop_->state_ = previous_state_;
 }
 
-MessageLoop::PendingTask::PendingTask(const Closure& task)
-    : std_task(task), nestable(true), sequence_num(0) {}
+MessageLoop::PendingTask::PendingTask(const tracked_objects::Location& posted_from,
+                                      const Closure& task)
+    : posted_from(posted_from), std_task(task), nestable(true), sequence_num(0) {}
 
-MessageLoop::PendingTask::PendingTask(const Closure& task,
+MessageLoop::PendingTask::PendingTask(const tracked_objects::Location& posted_from,
+                                      const Closure& task,
                                       TimeTicks delayed_run_time,
                                       bool nestable)
-    : std_task(task),
+    : posted_from(posted_from),
+      std_task(task),
       delayed_run_time(delayed_run_time),
       nestable(nestable),
       sequence_num(0) {}

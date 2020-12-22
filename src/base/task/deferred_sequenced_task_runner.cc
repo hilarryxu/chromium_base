@@ -25,15 +25,16 @@ DeferredSequencedTaskRunner::~DeferredSequencedTaskRunner() {
 }
 
 bool DeferredSequencedTaskRunner::PostDelayedTask(
+    const tracked_objects::Location& from_here,
     const Closure& task,
     TimeDelta delay) {
   AutoLock lock(lock_);
   if (started_) {
     DCHECK(deferred_tasks_queue_.empty());
-    return target_task_runner_->PostDelayedTask(task, delay);
+    return target_task_runner_->PostDelayedTask(from_here, task, delay);
   }
 
-  QueueDeferredTask(task, delay, false /* is_non_nestable */);
+  QueueDeferredTask(from_here, task, delay, false /* is_non_nestable */);
   return true;
 }
 
@@ -42,23 +43,27 @@ bool DeferredSequencedTaskRunner::RunsTasksOnCurrentThread() const {
 }
 
 bool DeferredSequencedTaskRunner::PostNonNestableDelayedTask(
+    const tracked_objects::Location& from_here,
     const Closure& task,
     TimeDelta delay) {
   AutoLock lock(lock_);
   if (started_) {
     DCHECK(deferred_tasks_queue_.empty());
-    return target_task_runner_->PostNonNestableDelayedTask(task,
+    return target_task_runner_->PostNonNestableDelayedTask(from_here,
+                                                           task,
                                                            delay);
   }
-  QueueDeferredTask(task, delay, true /* is_non_nestable */);
+  QueueDeferredTask(from_here, task, delay, true /* is_non_nestable */);
   return true;
 }
 
 void DeferredSequencedTaskRunner::QueueDeferredTask(
+    const tracked_objects::Location& from_here,
     const Closure& task,
     TimeDelta delay,
     bool is_non_nestable) {
   DeferredTask deferred_task;
+  deferred_task.posted_from = from_here;
   deferred_task.task = task;
   deferred_task.delay = delay;
   deferred_task.is_non_nestable = is_non_nestable;
@@ -75,10 +80,12 @@ void DeferredSequencedTaskRunner::Start() {
       ++i) {
     const DeferredTask& task = *i;
     if (task.is_non_nestable) {
-      target_task_runner_->PostNonNestableDelayedTask(task.task,
+      target_task_runner_->PostNonNestableDelayedTask(task.posted_from,
+                                                      task.task,
                                                       task.delay);
     } else {
-      target_task_runner_->PostDelayedTask(task.task,
+      target_task_runner_->PostDelayedTask(task.posted_from,
+                                           task.task,
                                            task.delay);
     }
     // Replace the i-th element in the |deferred_tasks_queue_| with an empty

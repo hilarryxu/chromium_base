@@ -9,8 +9,9 @@
 
 namespace base {
 
-bool TaskRunner::PostTask(const Closure& task) {
-  return PostDelayedTask(task, base::TimeDelta());
+bool TaskRunner::PostTask(const tracked_objects::Location& from_here,
+                          const Closure& task) {
+  return PostDelayedTask(from_here, task, base::TimeDelta());
 }
 
 TaskRunner::TaskRunner() {}

@@ -12,7 +12,8 @@ namespace base {
 class BASE_EXPORT MockTimer : public Timer {
  public:
   MockTimer(bool retain_user_task, bool is_repeating);
-  MockTimer(TimeDelta delay,
+  MockTimer(const tracked_objects::Location& posted_from,
+            TimeDelta delay,
             const base::Closure& user_task,
             bool is_repeating);
   ~MockTimer() override;
@@ -20,7 +21,8 @@ class BASE_EXPORT MockTimer : public Timer {
   // base::Timer implementation.
   bool IsRunning() const override;
   base::TimeDelta GetCurrentDelay() const override;
-  void Start(base::TimeDelta delay,
+  void Start(const tracked_objects::Location& posted_from,
+             base::TimeDelta delay,
              const base::Closure& user_task) override;
   void Stop() override;
   void Reset() override;

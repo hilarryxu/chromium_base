@@ -67,10 +67,12 @@ Timer::Timer(bool retain_user_task, bool is_repeating)
       is_running_(false) {
 }
 
-Timer::Timer(TimeDelta delay,
+Timer::Timer(const tracked_objects::Location& posted_from,
+             TimeDelta delay,
              const base::Closure& user_task,
              bool is_repeating)
     : scheduled_task_(NULL),
+      posted_from_(posted_from),
       delay_(delay),
       user_task_(user_task),
       thread_id_(0),
@@ -97,9 +99,10 @@ void Timer::SetTaskRunner(const std::shared_ptr<SingleThreadTaskRunner>& task_ru
   task_runner_ = task_runner;
 }
 
-void Timer::Start(TimeDelta delay,
+void Timer::Start(const tracked_objects::Location& posted_from,
+                  TimeDelta delay,
                   const base::Closure& user_task) {
-  SetTaskInfo(delay, user_task);
+  SetTaskInfo(posted_from, delay, user_task);
   Reset();
 }
 
@@ -136,8 +139,10 @@ void Timer::Reset() {
   PostNewScheduledTask(delay_);
 }
 
-void Timer::SetTaskInfo(TimeDelta delay,
+void Timer::SetTaskInfo(const tracked_objects::Location& posted_from,
+                        TimeDelta delay,
                         const base::Closure& user_task) {
+  posted_from_ = posted_from;
   delay_ = delay;
   user_task_ = user_task;
 }
@@ -148,12 +153,12 @@ void Timer::PostNewScheduledTask(TimeDelta delay) {
   scheduled_task_ = new BaseTimerTaskInternal(this);
   if (delay > TimeDelta::FromMicroseconds(0)) {
     // FIXME(xcc): delete scheduled_task_ after Run
-    GetTaskRunner()->PostDelayedTask(
+    GetTaskRunner()->PostDelayedTask(posted_from_,
         std::bind(&BaseTimerTaskInternal::Run, scheduled_task_),
         delay);
     scheduled_run_time_ = desired_run_time_ = TimeTicks::Now() + delay;
   } else {
-    GetTaskRunner()->PostTask(
+    GetTaskRunner()->PostTask(posted_from_,
         std::bind(&BaseTimerTaskInternal::Run, scheduled_task_));
     scheduled_run_time_ = desired_run_time_ = TimeTicks();
   }

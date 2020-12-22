@@ -449,8 +449,7 @@ BASE_EXPORT std::ostream& operator<<(std::ostream& o,
     result = (result * 131) + *i;                                       \
   return result;                                                        \
 
-#if 0
-namespace BASE_HASH_NAMESPACE {
+namespace std {
 
 template<>
 struct hash<base::StringPiece> {
@@ -465,7 +464,6 @@ struct hash<base::StringPiece16> {
   }
 };
 
-}  // namespace BASE_HASH_NAMESPACE
-#endif
+}  // namespace std
 
 #endif  // BASE_STRINGS_STRING_PIECE_H_

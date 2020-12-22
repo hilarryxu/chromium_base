@@ -11,6 +11,7 @@
 #include <string>
 
 #include "base/base_export.h"
+#include "base/hash.h"
 
 namespace tracked_objects {
 
@@ -47,7 +48,6 @@ class BASE_EXPORT Location {
 
   std::string ToString() const;
 
-#if 0
   // Hash operator for hash maps.
   struct Hash {
     size_t operator()(const Location& location) const {
@@ -63,7 +63,6 @@ class BASE_EXPORT Location {
                             location.line_number());
     }
   };
-#endif
 
   // Translate the some of the state in this instance into a human readable
   // string with HTML characters in the function names escaped, and append that

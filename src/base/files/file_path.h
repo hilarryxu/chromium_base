@@ -460,10 +460,9 @@ void PrintTo(const FilePath& path, std::ostream* out);
 #define PRFilePath "ls"
 #endif  // OS_WIN
 
-#if 0
 // Provide a hash function so that hash_sets and maps can contain FilePath
 // objects.
-namespace BASE_HASH_NAMESPACE {
+namespace std {
 
 template<>
 struct hash<base::FilePath> {
@@ -472,7 +471,6 @@ struct hash<base::FilePath> {
   }
 };
 
-}  // namespace BASE_HASH_NAMESPACE
-#endif
+}  // namespace std
 
 #endif  // BASE_FILES_FILE_PATH_H_

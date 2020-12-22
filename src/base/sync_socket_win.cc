@@ -265,8 +265,7 @@ size_t SyncSocket::Send(const void* buffer, size_t length) {
 size_t SyncSocket::ReceiveWithTimeout(void* buffer,
                                       size_t length,
                                       TimeDelta timeout) {
-  // FIXME(xcc): to be fixed
-  // NOTIMPLEMENTED();
+  NOTIMPLEMENTED();
   return 0;
 }
 

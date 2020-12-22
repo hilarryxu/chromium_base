@@ -58,6 +58,16 @@
 #define NOTREACHED() DCHECK(false)
 #define DPCHECK DCHECK
 
+#if defined(COMPILER_GCC)
+// On Linux, with GCC, we can use __PRETTY_FUNCTION__ to get the demangled name
+// of the current function in the NOTIMPLEMENTED message.
+#define NOTIMPLEMENTED_MSG "Not implemented reached in " << __PRETTY_FUNCTION__
+#else
+#define NOTIMPLEMENTED_MSG "NOT IMPLEMENTED"
+#endif
+
+#define NOTIMPLEMENTED() LOG(ERROR) << NOTIMPLEMENTED_MSG
+
 // Always-on checking
 #define CHECK(x) \
   if (x) {       \

@@ -76,8 +76,8 @@ bool ThreadMap::UnregisterThread() {
     if (iter != GetInstance()->threads_.end())
       GetInstance()->threads_.erase(iter);
     else {
+      DCHECK(false);	// logic error, we should not come here
     }
-    // FIXME(xcc); ? DCHECK(false);	// logic error, we should not come here
     tls->managed_thread_id = -1;
   }
 

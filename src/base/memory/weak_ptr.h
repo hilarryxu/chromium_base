@@ -74,7 +74,6 @@
 #include "base/logging.h"
 #include "base/macros.h"
 #include "base/memory/ref_counted.h"
-// #include "base/sequence_checker.h"
 #include "base/template_util.h"
 
 namespace base {
@@ -102,8 +101,6 @@ class BASE_EXPORT WeakReference {
 
     ~Flag();
 
-    // FIXME(xcc): to be fixed
-    // SequenceChecker sequence_checker_;
     bool is_valid_;
   };
 

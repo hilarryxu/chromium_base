@@ -22,6 +22,7 @@
 #include "base/time/time.h"
 #include "base/callback.h"
 #include "base/location.h"
+#include "base/task/pending_task.h"
 
 namespace base {
 
@@ -197,49 +198,6 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
     MessageLoop* loop_;
     bool old_state_;
   };
-
-  struct PendingTask {
-    PendingTask(const tracked_objects::Location& posted_from, const Closure& task);
-    PendingTask(const tracked_objects::Location& posted_from,
-                const Closure& task,
-                base::TimeTicks delayed_run_time,
-                bool nestable);
-
-    ~PendingTask();
-
-    // 用于优先队列的排序，std::heap默认为大顶堆，
-    // 而我们要的是小顶堆，所以这个操作符重载实际得返回大于的比较结果
-    bool operator<(const PendingTask& other) const;
-
-    // 来源信息
-    tracked_objects::Location posted_from;
-    // 任务被运行的时刻，这个也用于鉴别定时任务与非定时任务
-    base::TimeTicks delayed_run_time;
-    // 定时任务序号，可作为定时任务的第二排序键，非定时任务此项无效
-    int sequence_num;
-    // 是否允许在嵌套的MessageLoop中被执行
-    bool nestable;
-
-    void Run() {
-      if (std_task) {
-        std_task();
-      } else {
-        assert(false);
-      }
-    }
-
-   private:
-    Closure std_task;
-  };
-
-  class TaskQueue : public std::queue<PendingTask> {
-   public:
-    void Swap(TaskQueue* queue) {
-      c.swap(queue->c);  // 常数时间复杂度的内存交换
-    }
-  };
-
-  typedef std::priority_queue<PendingTask> DelayedTaskQueue;
 
   virtual bool DoWork();
   virtual bool DoDelayedWork(base::TimeTicks* next_delayed_work_time);

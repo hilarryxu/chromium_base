@@ -392,31 +392,6 @@ MessageLoop::AutoRunState::~AutoRunState() {
   loop_->state_ = previous_state_;
 }
 
-MessageLoop::PendingTask::PendingTask(const tracked_objects::Location& posted_from,
-                                      const Closure& task)
-    : posted_from(posted_from), std_task(task), nestable(true), sequence_num(0) {}
-
-MessageLoop::PendingTask::PendingTask(const tracked_objects::Location& posted_from,
-                                      const Closure& task,
-                                      TimeTicks delayed_run_time,
-                                      bool nestable)
-    : posted_from(posted_from),
-      std_task(task),
-      delayed_run_time(delayed_run_time),
-      nestable(nestable),
-      sequence_num(0) {}
-
-MessageLoop::PendingTask::~PendingTask() {}
-
-bool MessageLoop::PendingTask::operator<(
-    const MessageLoop::PendingTask& other) const {
-  if (delayed_run_time > other.delayed_run_time)
-    return true;
-  if (delayed_run_time < other.delayed_run_time)
-    return false;
-  return sequence_num > other.sequence_num;
-}
-
 #if defined(OS_WIN)
 
 // the UIMessageLoop class

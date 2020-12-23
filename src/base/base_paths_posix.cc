@@ -30,19 +30,20 @@
 
 namespace base {
 
+const char kProcSelfExe[] = "/proc/self/exe";
+
 bool PathProviderPosix(int key, FilePath* result) {
   FilePath path;
   switch (key) {
     case base::FILE_EXE:
     case base::FILE_MODULE: {  // TODO(evanm): is this correct?
 #if defined(OS_LINUX)
-      // FIXME(xcc): to be fixed
-      // FilePath bin_dir;
-      // if (!ReadSymbolicLink(FilePath(kProcSelfExe), &bin_dir)) {
-      //   NOTREACHED() << "Unable to resolve " << kProcSelfExe << ".";
-      //   return false;
-      // }
-      // *result = bin_dir;
+      FilePath bin_dir;
+      if (!ReadSymbolicLink(FilePath(kProcSelfExe), &bin_dir)) {
+        NOTREACHED() << "Unable to resolve " << kProcSelfExe << ".";
+        return false;
+      }
+      *result = bin_dir;
       return true;
 #elif defined(OS_FREEBSD)
       int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };

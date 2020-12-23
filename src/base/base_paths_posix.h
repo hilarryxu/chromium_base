@@ -5,6 +5,8 @@
 #ifndef BASE_BASE_PATHS_POSIX_H_
 #define BASE_BASE_PATHS_POSIX_H_
 
+#include "base/base_export.h"
+
 // This file declares windows-specific path keys for the base module.
 // These can be used with the PathService to access various special
 // directories and files.
@@ -21,6 +23,9 @@ enum {
                 // ~/Library/Caches on Mac.
   PATH_POSIX_END
 };
+
+// /proc/self/exe refers to the current executable.
+BASE_EXPORT extern const char kProcSelfExe[];
 
 }  // namespace base
 

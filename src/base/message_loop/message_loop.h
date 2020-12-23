@@ -139,8 +139,10 @@ class BASE_EXPORT MessageLoop : public MessagePump::Delegate {
   // MessageLoop销毁观察者，MessageLoop销毁前将会通知这些观察者
   class BASE_EXPORT DestructionObserver {
    public:
-    virtual void PreDestroyCurrentMessageLoop() = 0;
-    virtual ~DestructionObserver() {}
+    virtual void WillDestroyCurrentMessageLoop() = 0;
+
+   protected:
+    virtual ~DestructionObserver();
   };
 
   void AddDestructionObserver(DestructionObserver* observer);

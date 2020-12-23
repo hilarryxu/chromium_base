@@ -359,7 +359,7 @@ void MessageLoop::RemoveTaskObserver(TaskObserver* observer) {
 
 void MessageLoop::PreDestruct() {
   FOR_EACH_OBSERVER(DestructionObserver, destruction_observers_,
-                    PreDestroyCurrentMessageLoop());
+                    WillDestroyCurrentMessageLoop());
 }
 
 void MessageLoop::PreProcessTask() {

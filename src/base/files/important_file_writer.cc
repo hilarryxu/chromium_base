@@ -10,11 +10,13 @@
 #include <string>
 #include <utility>
 
+#include "build/build_config.h"
+#include "base/logging.h"
+#include "base/memory/owned_pointer.h"
 #include "base/debug/alias.h"
 #include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
-#include "base/logging.h"
 #include "base/macros.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/strings/string_number_conversions.h"
@@ -22,7 +24,6 @@
 #include "base/task/task_runner.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/time/time.h"
-#include "build/build_config.h"
 #include "base/message_loop/message_loop_proxy.h"
 
 namespace base {
@@ -52,8 +53,8 @@ void LogFailure(const FilePath& path, TempFileFailure failure_code,
 
 // Helper function to call WriteFileAtomically() with a std::unique_ptr<std::string>.
 bool WriteScopedStringToFileAtomically(const FilePath& path,
-                                       const std::string& data) {
-  return ImportantFileWriter::WriteFileAtomically(path, data);
+                                       owned_pointer<std::string> data) {
+  return ImportantFileWriter::WriteFileAtomically(path, *data);
 }
 
 }  // namespace
@@ -148,7 +149,9 @@ void ImportantFileWriter::WriteNow(std::string&& data) {
   if (HasPendingWrite())
     timer_.Stop();
 
-  auto task = std::bind(WriteScopedStringToFileAtomically, path_, std::move(data));
+  std::string* p_data = new std::string(std::move(data));
+  owned_pointer<std::string> op_data(p_data);
+  auto task = std::bind(WriteScopedStringToFileAtomically, path_, op_data);
   if (!PostWriteTask(task)) {
     // Posting the task to background message loop is not expected
     // to fail, but if it does, avoid losing data and just hit the disk

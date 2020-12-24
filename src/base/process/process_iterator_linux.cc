@@ -64,7 +64,7 @@ ProcessIterator::ProcessIterator(const ProcessFilter* filter)
   if (!procfs_dir_) {
     // On Android, SELinux may prevent reading /proc. See
     // https://crbug.com/581517 for details.
-    // PLOG(ERROR) << "opendir " << internal::kProcDir;
+    PLOG(ERROR) << "opendir " << internal::kProcDir;
   }
 }
 

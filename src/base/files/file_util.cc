@@ -80,7 +80,6 @@ bool ContentsEqual(const FilePath& filename1, const FilePath& filename2) {
 
   file1.close();
   file2.close();
-
   return true;
 }
 

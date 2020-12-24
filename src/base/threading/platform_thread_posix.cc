@@ -112,7 +112,7 @@ bool CreateThread(size_t stack_size,
     // Value of |handle| is undefined if pthread_create fails.
     handle = 0;
     errno = err;
-    // PLOG(ERROR) << "pthread_create";
+    PLOG(ERROR) << "pthread_create";
   }
   *thread_handle = PlatformThreadHandle(handle);
 

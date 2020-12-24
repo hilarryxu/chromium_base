@@ -8,6 +8,7 @@
 
 #include "base/logging.h"
 #include "base/memory/ref_counted.h"
+#include "base/memory/owned_pointer.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/task/thread_task_runner_handle.h"
 #include "base/threading/platform_thread.h"
@@ -58,6 +59,14 @@ class BaseTimerTaskInternal {
  private:
   Timer* timer_;
 };
+
+namespace {
+
+void WrapScheduledTaskRun(owned_pointer<BaseTimerTaskInternal> task) {
+  task->Run();
+}
+
+}
 
 Timer::Timer(bool retain_user_task, bool is_repeating)
     : scheduled_task_(NULL),
@@ -151,15 +160,15 @@ void Timer::PostNewScheduledTask(TimeDelta delay) {
   DCHECK(scheduled_task_ == NULL);
   is_running_ = true;
   scheduled_task_ = new BaseTimerTaskInternal(this);
+  owned_pointer<BaseTimerTaskInternal> op_task(scheduled_task_);
   if (delay > TimeDelta::FromMicroseconds(0)) {
-    // FIXME(xcc): delete scheduled_task_ after Run
     GetTaskRunner()->PostDelayedTask(posted_from_,
-        std::bind(&BaseTimerTaskInternal::Run, scheduled_task_),
+        std::bind(&WrapScheduledTaskRun, op_task),
         delay);
     scheduled_run_time_ = desired_run_time_ = TimeTicks::Now() + delay;
   } else {
     GetTaskRunner()->PostTask(posted_from_,
-        std::bind(&BaseTimerTaskInternal::Run, scheduled_task_));
+        std::bind(&WrapScheduledTaskRun, op_task));
     scheduled_run_time_ = desired_run_time_ = TimeTicks();
   }
   // Remember the thread ID that posts the first task -- this will be verified

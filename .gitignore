@@ -39,6 +39,8 @@
 *.vcxproj
 *.sln
 
+tags
+.tags
 
 /Makefile
 /*.make

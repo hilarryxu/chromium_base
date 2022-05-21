@@ -41,10 +41,17 @@ workspace "sln-chromium_base"
       }
       buildoptions { "/std:c++14" }
 
-    filter { "system:windows", "toolset:gcc" }
+    filter { "system:windows", "action:gmake" }
       files {
         "src/base/**_win.cc",
         "src/base/win/**.cc"
+      }
+      removefiles {
+        "src/base/message_loop/**",
+        "src/base/threading/framework_thread.cc",
+        "src/base/threading/thread_manager.cc",
+        "src/base/timer/timer.cc",
+        "src/base/win/object_watcher.cc",
       }
       defines { "MINGW_HAS_SECURE_API", "_POSIX_C_SOURCE" }
       buildoptions { "-std=c++14", "-fno-rtti" }

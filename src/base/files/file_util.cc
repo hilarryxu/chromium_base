@@ -49,6 +49,7 @@ bool Move(const FilePath& from_path, const FilePath& to_path) {
   return internal::MoveUnsafe(from_path, to_path);
 }
 
+#if !defined(OS_WIN)
 bool ContentsEqual(const FilePath& filename1, const FilePath& filename2) {
   // We open the file in binary format even if they are text files because
   // we are just comparing that bytes are exactly same in both files and not
@@ -122,6 +123,7 @@ bool TextContentsEqual(const FilePath& filename1, const FilePath& filename2) {
 
   return true;
 }
+#endif  // !defined(OS_WIN)
 #endif  // !defined(OS_NACL_NONSFI)
 
 bool ReadFileToString(const FilePath& path,

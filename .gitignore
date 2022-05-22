@@ -44,5 +44,6 @@ tags
 
 /Makefile
 /*.make
+/local_build.sh
 
 builddir/

@@ -7,7 +7,7 @@ workspace "sln-chromium_base"
   objdir "builddir/obj"
   targetdir "builddir"
   libdirs { "builddir" }
-  defines { "WINVER=0x0501", "_WIN32_WINNT=0x0501", "_WIN32_WINDOWS=0x0501" }
+  -- defines { "WINVER=0x0501", "_WIN32_WINNT=0x0501", "_WIN32_WINDOWS=0x0501" }
 
   configurations { "Debug", "Release" }
 

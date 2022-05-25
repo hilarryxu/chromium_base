@@ -303,6 +303,7 @@ bool Process::Terminate(int exit_code, bool wait) const {
   if (result && wait) {
     int tries = 60;
 
+    // TODO(xcc): to be fixed
 #if 0
     if (RunningOnValgrind()) {
       // Wait for some extra time when running under Valgrind since the child

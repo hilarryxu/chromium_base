@@ -126,6 +126,7 @@ bool CleanupProcesses(const FilePath::StringType& executable_name,
   return false;
 }
 
+// TODO(xcc): to be fixed
 #if 0
 void EnsureProcessTerminated(Process process) {
   DCHECK(!process.is_current());

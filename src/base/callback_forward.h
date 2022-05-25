@@ -13,4 +13,4 @@ using Closure = std::function<void(void)>;
 
 }  // namespace base
 
-#endif  // BASE_CALLBACK_FORWARD_H
+#endif  // BASE_CALLBACK_FORWARD_H_

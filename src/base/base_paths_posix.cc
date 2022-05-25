@@ -102,6 +102,7 @@ bool PathProviderPosix(int key, FilePath* result) {
                   << "Try running from your chromium/src directory.";
       return false;
     }
+    // TODO(xcc): to be fixed
     // case base::DIR_USER_DESKTOP:
     //   *result = base::nix::GetXDGUserDirectory("DESKTOP", "Desktop");
     //   return true;
